@@ -46,3 +46,4 @@ vcpkg_installed
 *.bundleroms/*/fs_standalone.cpp
 computercraft/
 craftos-tweaked.json
+*~
