@@ -129,6 +129,11 @@ All official builds are made by GitHub Actions, not on developer machines:
 
 macOS, iOS and Android builds, Windows installers and distro packages are not built by CI yet.
 
+### Crash logs and bug reports
+If CraftOS-Tweaked crashes, it saves a text crash log in the `crash-logs` folder of its data folder. **Nothing is uploaded automatically.** The next time you start it, you can choose to open a pre-filled bug report on GitHub, open the log folder, or ignore the crash. Please attach the log file to the report; it may contain file paths that include your user name, so look it over first. Other problems can be reported with the [issue forms](https://github.com/slammingprogramming/craftos-pc-tweaked/issues/new/choose).
+
+Releases are tagged `vMAJOR.MINOR.PATCH` (for example `v0.1.0`); see [TODO.md](TODO.md) for how to publish one.
+
 ### Instructions
 #### Windows
 1. Download [Visual Studio 2019](https://visualstudio.microsoft.com/) if not already installed
