@@ -4,8 +4,9 @@
  * 
  * This file defines the class for the drive peripheral.
  * 
- * This code is licensed under the MIT License.
+ * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows. 
+ * Originally released under the MIT License; see the LICENSE file.
  */
 
 #ifndef PERIPHERAL_DRIVE_HPP

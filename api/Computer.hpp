@@ -5,8 +5,9 @@
  * This file defines the Computer class, which stores the state of each running
  * computer.
  *
- * This code is licensed under the MIT license.
+ * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Originally released under the MIT License; see the LICENSE file.
  */
 
 #ifndef CRAFTOS_PC_COMPUTER_HPP

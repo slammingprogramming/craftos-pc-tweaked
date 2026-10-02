@@ -5,8 +5,9 @@
  * This file defines a generic peripheral class for energy-storing peripherals
  * to inherit from.
  * 
- * This code is licensed under the MIT license.
+ * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Originally released under the MIT License; see the LICENSE file.
  */
 
 #ifndef CRAFTOS_PC_GENERIC_PERIPHERAL_ENERGY_STORAGE_HPP

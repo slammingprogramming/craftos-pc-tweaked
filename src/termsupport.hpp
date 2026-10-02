@@ -4,8 +4,9 @@
  * 
  * This file defines some functions that interact with the terminal.
  * 
- * This code is licensed under the MIT license.
+ * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Originally released under the MIT License; see the LICENSE file.
  */
 
 #ifndef TERMSUPPORT_HPP

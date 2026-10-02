@@ -5,8 +5,9 @@
  * This file stores the WAV samples for each instrument used for the speaker
  * peripheral.
  * 
- * This code is licensed under the MIT license.
+ * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Originally released under the MIT License; see the LICENSE file.
  */
 
 #ifndef NO_MIXER // don't build this unless we have to

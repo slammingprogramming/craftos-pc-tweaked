@@ -5,8 +5,9 @@
  * This file creates a new CCEmuX API for backwards-compatibility with CCEmuX
  * programs when run in CraftOS-PC.
  * 
- * This code is licensed under the MIT License.
+ * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Originally released under the MIT License; see the LICENSE file.
  */
 
 extern "C" {

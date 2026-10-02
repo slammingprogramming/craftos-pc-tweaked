@@ -3,7 +3,7 @@
 <component type="desktop-application">
   <id>cc.craftos-pc.CraftOS-PC</id>
   <metadata_license>MIT</metadata_license>
-  <project_license>MIT</project_license>
+  <project_license>AGPL-3.0-or-later</project_license>
   <name>CraftOS-PC</name>
   <summary>Advanced ComputerCraft emulator</summary>
 

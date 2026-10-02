@@ -4,8 +4,9 @@
  *
  * This file implements the functions for the os API.
  *
- * This code is licensed under the MIT license.
+ * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Originally released under the MIT License; see the LICENSE file.
  */
 
 #include <Computer.hpp>
@@ -349,7 +350,17 @@ static int os_reboot(lua_State *L) {
 
 static int os_about(lua_State *L) {
     lastCFunction = __func__;
-    lua_pushstring(L, "CraftOS-PC " CRAFTOSPC_VERSION "\n\nCraftOS-PC 2 is licensed under the MIT License.\nMIT License\n\
+    lua_pushstring(L, "CraftOS-PC " CRAFTOSPC_VERSION "\n\n\
+This program is free software, licensed under the GNU Affero General Public\n\
+License, version 3 or (at your option) any later version (AGPL-3.0-or-later).\n\
+It comes with ABSOLUTELY NO WARRANTY. The complete corresponding source code is\n\
+available at https://github.com/slammingprogramming/craftos-pc-tweaked, and the\n\
+license text is available in the LICENSE file or at https://www.gnu.org/licenses/.\n\
+\n\
+This is a fork of CraftOS-PC 2 by JackMacWindows (MCJack123), which was\n\
+originally released under the MIT License:\n\
+\n\
+MIT License\n\
 \n\
 Copyright (c) 2019-2024 JackMacWindows\n\
 \n\
@@ -370,7 +381,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n\
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n\
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n\
 SOFTWARE.\n\n\
-Special thanks:\n\
+Special thanks (from the original CraftOS-PC 2 by JackMacWindows):\n\
 * dan200 for creating the ComputerCraft mod and making it open source\n\
 * SquidDev for picking up ComputerCraft after Dan left and creating CC: Tweaked\n\
 * EveryOS for sending me a patched version of Lua that finally fixed issue #1\n\

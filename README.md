@@ -1,6 +1,8 @@
 # CraftOS-PC 2 [![Actions Status](https://github.com/MCJack123/craftos2/workflows/CI/badge.svg)](https://github.com/MCJack123/craftos2/actions)
 A rewrite of [CraftOS-PC (Classic)](https://github.com/MCJack123/craftos) using C++ and a modified version of PUC Lua, as well as SDL for drawing.
 
+> **craftos-pc-tweaked** is a hard fork of [CraftOS-PC 2](https://github.com/MCJack123/craftos2) by JackMacWindows (MCJack123), being adapted for CC: Tweaked. Many thanks to the original author and all contributors; see [AUTHORS.md](AUTHORS.md). Installation sources and links below still refer to the upstream project unless noted otherwise.
+
 Visit the website at https://www.craftos-pc.cc/ for more information, including documentation.
 
 ![Screenfetch](resources/image1.png)
@@ -180,3 +182,6 @@ Using the same language that Lua uses guarantees compatibility with the base API
 
 **4. It doesn't rely on any single platform**
 I wanted to keep CraftOS-PC Classic's wide compatibility in CraftOS-PC 2. Using other languages such as C# or Swift are platform-dependent and are not guaranteed to work on any platform. C++ is a basic language that's always present and maintains a portable library that works on all platforms. I've moved all platform-specific code into the platform_*.cpp files so the rest of the code can remain as independent as possible.
+
+## License
+craftos-pc-tweaked is licensed under the [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL-3.0-or-later). It is a fork of CraftOS-PC 2, which was released under the MIT License; the original MIT notice and copyright are preserved in [LICENSE](LICENSE), and credits are listed in [AUTHORS.md](AUTHORS.md). If you run a modified version as a network service, the AGPL requires you to offer its source to your users.
