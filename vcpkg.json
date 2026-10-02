@@ -1,6 +1,6 @@
 {
     "name": "craftos-tweaked",
-    "version-string": "v2.8",
+    "version": "0.1.0",
     "description": "Advanced ComputerCraft emulator",
     "dependencies": [
         "sdl2",

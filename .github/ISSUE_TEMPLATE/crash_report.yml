@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: CC-BY-SA-4.0
+# Copyright (c) 2026 slammingprogramming
+# Based on the issue templates of CraftOS-PC 2, Copyright (c) 2019-2024 JackMacWindows (MIT License).
+
+name: Crash report
+description: CraftOS-Tweaked crashed. (The "Report on GitHub" button after a crash opens this form pre-filled.)
+title: "Crash: "
+labels: ["bug", "crash"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        When CraftOS-Tweaked crashes it saves a **crash log** on your computer in the `crash-logs` folder of its data folder. **Nothing is uploaded automatically.**
+        The details below were filled in from that log if you got here through the "Report on GitHub" button. Please also **attach the whole log file** to this issue (drag it into the box below) so the full stack trace is available.
+        The log can contain file paths that include your user name; look it over before attaching it.
+  - type: input
+    id: version
+    attributes:
+      label: CraftOS-Tweaked version
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: Windows (x64) / Linux / macOS / iOS / Android
+    validations:
+      required: true
+  - type: textarea
+    id: crash_details
+    attributes:
+      label: Crash details
+      description: The start of the crash log (filled in automatically).
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What were you doing when it crashed?
+      description: Which program or command was running, any plugins in use, and whether it happens every time.
+    validations:
+      required: true
+  - type: textarea
+    id: log_file
+    attributes:
+      label: Full crash log
+      description: Drag the `crash-....log` file here to attach it.
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Checks
+      options:
+        - label: I looked at the crash log and I am fine with sharing it publicly.
+          required: true

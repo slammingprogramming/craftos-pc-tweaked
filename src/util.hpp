@@ -30,9 +30,10 @@ extern "C" {
 #include <Computer.hpp>
 #include <Terminal.hpp>
 
-// TODO(slammingprogramming): decide the CraftOS-Tweaked versioning scheme (see TODO.md). The updater compares
-// this string against the latest release tag of CRAFTOSTWEAKED_REPO.
-#define CRAFTOSPC_VERSION    "v2.8.4"
+// CraftOS-Tweaked versions are "vMAJOR.MINOR.PATCH" (pre-releases add "-suffix", e.g. "v0.2.0-beta.1"). The
+// updater compares this string against the latest release tag of CRAFTOSTWEAKED_REPO, and the release workflow
+// refuses to publish a tag that differs from it (or while CRAFTOSPC_INDEV is true). See TODO.md.
+#define CRAFTOSPC_VERSION    "v0.1.0"
 #define CRAFTOSPC_CC_VERSION "1.116.1"
 #define CRAFTOSPC_INDEV      true
 
@@ -207,6 +208,22 @@ extern const wchar_t charsetConversion[256];
 
 extern std::string loadingPlugin;
 extern const char * lastCFunction;
+
+// Crash logs. When CraftOS-Tweaked crashes, the platform crash handler saves a text report to
+// <data dir>/crash-logs/. Nothing is ever sent anywhere automatically: on the next start the user is offered
+// a button that opens a pre-filled GitHub issue (see offerPendingCrashReport in main.cpp).
+extern void initCrashLog();                                                  // prepares the crash log folder; call once at startup
+extern size_t beginCrashReport(char * buf, size_t size, const char * platform, const char * reason); // writes the report header
+extern const path_t::value_type * newCrashLogPath();                         // path for a new crash log file, or NULL
+extern const path_t::value_type * lastCrashLogPath();                        // path of the crash log written last, or NULL
+extern size_t crashReportf(char * buf, size_t size, size_t used, const char * fmt, ...); // printf into a report buffer; returns the new length
+extern std::vector<path_t> pendingCrashLogs();                               // crash logs the user has not been told about yet
+extern void markCrashLogsSeen(const std::vector<path_t>& logs);
+extern std::string crashReportIssueURL(const path_t& log);                   // pre-filled "new issue" URL for a crash log
+extern std::string crashLogFolderURL();                                      // file:// URL of the crash log folder
+#ifndef _WIN32
+extern int openCrashLog();                                                   // opens a new crash log for writing (async-signal-safe); returns an fd or -1
+#endif
 extern Computer * get_comp(lua_State *L);
 extern void uncache_state(lua_State *L);
 

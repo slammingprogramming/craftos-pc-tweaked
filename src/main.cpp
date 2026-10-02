@@ -33,6 +33,11 @@ static void* releaseNotesThread(void* data);
 #include "terminal/TRoRTerminal.hpp"
 #include "terminal/HardwareSDLTerminal.hpp"
 #include "termsupport.hpp"
+#ifdef _WIN32
+#ifndef strcasecmp
+#define strcasecmp _stricmp // MSVC has no strcasecmp
+#endif
+#endif
 #include <Poco/Version.h>
 #include <Poco/URI.h>
 #include <Poco/Checksum.h>
@@ -58,7 +63,6 @@ extern "C" {extern int Android_JNI_SetupThread(void);}
 #endif
 
 #ifdef _WIN32
-extern void uploadCrashDumps();
 #endif
 
 extern void awaitTasks(const std::function<bool()>& predicate = []()->bool{return true;});
@@ -274,6 +278,50 @@ static void update_thread() {
     }
 }
 #endif
+
+// If the last session crashed, a crash log was saved locally (nothing is ever uploaded automatically). Tell the user
+// where it is and let them decide: open a pre-filled GitHub issue, look at the log, or ignore it.
+static void offerPendingCrashReport() {
+    const std::vector<path_t> logs = pendingCrashLogs();
+    if (logs.empty()) return;
+    const path_t newest = logs.back();
+    const path_t kept = newest.parent_path() / (newest.stem().string() + ".seen.log"); // where markCrashLogsSeen moves it
+    markCrashLogsSeen(logs); // only ask once
+    const std::string url = crashReportIssueURL(kept);
+    const std::string message = "CraftOS-Tweaked crashed the last time it ran. A crash log was saved on this computer:\n\n" +
+        kept.string() +
+        "\n\nNothing has been sent anywhere. You can report the crash on GitHub (this opens a pre-filled issue in your browser, "
+        "where you can review it and attach the log file before submitting), open the folder with the log, or ignore it.";
+    if (selectedRenderer != 0 && selectedRenderer != 5) {
+        fprintf(stderr, "CraftOS-Tweaked crashed the last time it ran. A crash log was saved at %s\nTo report it, open %s\n",
+            kept.string().c_str(), url.c_str());
+        return;
+    }
+#if SDL_VERSION_ATLEAST(2, 0, 14)
+    SDL_MessageBoxData data;
+    data.title = "CraftOS-Tweaked crashed";
+    data.message = message.c_str();
+    data.colorScheme = NULL;
+    data.window = NULL;
+    data.flags = SDL_MESSAGEBOX_INFORMATION;
+    SDL_MessageBoxButtonData buttons[3] = {
+        {SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Ignore"},
+        {0, 2, "Show Log Folder"},
+        {SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Report on GitHub"}
+    };
+    data.numbuttons = 3;
+    data.buttons = buttons;
+    int choice = 0;
+    do {
+        choice = 0;
+        if (SDL_ShowMessageBox(&data, &choice) != 0) return;
+        if (choice == 1) SDL_OpenURL(url.c_str());
+        else if (choice == 2) SDL_OpenURL(crashLogFolderURL().c_str());
+    } while (choice == 2); // after showing the folder, let them still choose to report
+#else
+    fprintf(stderr, "%s\nTo report it, open %s\n", message.c_str(), url.c_str());
+#endif
+}
 
 static int runRenderer(const std::function<std::string()>& read, const std::function<void(const std::string&)>& write) {
     if (selectedRenderer == 0) SDLTerminal::init();
@@ -571,7 +619,6 @@ static void setConfigOption(const char * name, const char * value) {
     setConfigSettingI(http_timeout);
     setConfigSettingB(extendMargins);
     setConfigSettingB(snapToSize);
-    setConfigSettingB(snooperEnabled);
     setConfigSettingB(keepOpenOnShutdown);
     setConfigSettingB(useWebP);
     setConfigSettingB(dropFilePath);
@@ -894,28 +941,7 @@ int main(int argc, char*argv[]) {
     if ((selectedRenderer == 0 || selectedRenderer == 5) && config.checkUpdates && config.skipUpdate != CRAFTOSPC_VERSION) 
         std::thread(update_thread).detach();
 #endif
-// TODO(slammingprogramming): crash-log upload (CRASHREPORT_API_KEY) is compiled out of CraftOS-Tweaked builds.
-// Its upload endpoint in win.cpp belongs to upstream; only enable it with our own endpoint.
-#if defined(_WIN32) && defined(CRASHREPORT_API_KEY)
-    if (onboardingMode == 1 && !config.snooperEnabled && (selectedRenderer == 0 || selectedRenderer == 5)) {
-        SDL_MessageBoxData data;
-        data.title = "Allow analytics?";
-        data.message = "CraftOS-Tweaked can automatically upload crash logs to help bugs get fixed. These files are sent anonymously and don't contain direct personal data, but they do include general system information (see " CRAFTOSTWEAKED_DOCS_URL "/privacy for more info). Would you like to allow crash logs to be uploaded?";
-        data.colorScheme = NULL;
-        data.window = NULL;
-        data.flags = SDL_MESSAGEBOX_INFORMATION;
-        SDL_MessageBoxButtonData buttons[2] = {
-            {SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Deny"},
-            {SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Allow"}
-        };
-        data.numbuttons = 2;
-        data.buttons = buttons;
-        int res = 0;
-        SDL_ShowMessageBox(&data, &res);
-        config.snooperEnabled = res;
-    }
-    uploadCrashDumps();
-#endif
+    offerPendingCrashReport();
     startComputer(manualID ? id : config.initialComputer);
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(mainLoop, 0, false);

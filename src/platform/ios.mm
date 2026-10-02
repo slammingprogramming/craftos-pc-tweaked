@@ -45,6 +45,7 @@ extern "C" {
 #include "../peripheral/drive.hpp"
 #include "../peripheral/speaker.hpp"
 #include "../platform.hpp"
+#include "../crashlog_posix.hpp"
 #include "../runtime.hpp"
 #include "../termsupport.hpp"
 #include "../terminal/SDLTerminal.hpp"
@@ -805,8 +806,11 @@ void handler(int sig) {
     // get void*'s for all entries on the stack
     size = backtrace(array, 25);
 
+    // Save a crash log. Nothing is uploaded; on the next start the user is offered a pre-filled GitHub issue.
+    saveCrashLogPosix("iOS", sig, "", array, (int)size);
+
     // print out all the frames to stderr
-    fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". Include the following text in your report:\nOS: Mac (Application)\n", strsignal(sig));
+    fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. A crash log was saved%s%s (nothing was uploaded). Start CraftOS-Tweaked again for a pre-filled bug report, or report this at " CRAFTOSTWEAKED_BUGREPORT_URL " and include the following text:\nOS: iOS\n", strsignal(sig), lastCrashLogPath() ? " to " : "", lastCrashLogPath() ? (const char *)lastCrashLogPath() : "");
     backtrace_symbols_fd(array, size, STDERR_FILENO);
     signal(sig, NULL);
 }
@@ -820,6 +824,8 @@ static std::string mobile_keyboard_open(lua_State *L, void* ud) {
 }
 
 void setupCrashHandler() {
+    initCrashLog();
+    {void * preload[1]; backtrace(preload, 1);} // load the unwinder now so the crash handler doesn't have to
     signal(SIGSEGV, handler);
     signal(SIGILL, handler);
     signal(SIGBUS, handler);

@@ -83,7 +83,7 @@ struct configuration {
     bool snapToSize;
 
     // The following fields are available in API version 10.2 and later.
-    bool snooperEnabled;
+    bool snooperEnabled; // Deprecated and unused: CraftOS-Tweaked never uploads crash logs. Kept so the plugin ABI does not change.
 
     // The following fields are available in API version 10.3 and later.
     bool keepOpenOnShutdown;

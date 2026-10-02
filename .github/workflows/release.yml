@@ -6,7 +6,7 @@
 # the GitHub Release if it does not exist yet, and attaches the packaged
 # results plus SHA-256 hashes to it.
 #
-#   git tag v2.8.4-tweaked.1 && git push origin v2.8.4-tweaked.1
+#   git tag v0.1.0 && git push origin v0.1.0
 #
 # This deliberately does not trigger on the "release published" event: releases
 # created with the default GITHUB_TOKEN (by this or any other workflow) do not
@@ -32,9 +32,31 @@ env:
   ROM_REF: master
 
 jobs:
+  check:
+    name: Check version
+    if: ${{ github.ref_type == 'tag' }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Tag must match src/util.hpp
+      run: |
+        VERSION="$(sed -n 's/^#define CRAFTOSPC_VERSION *"\(.*\)".*/\1/p' src/util.hpp)"
+        INDEV="$(sed -n 's/^#define CRAFTOSPC_INDEV *\([a-z]*\).*/\1/p' src/util.hpp)"
+        echo "Tag: $TAG, CRAFTOSPC_VERSION: $VERSION, CRAFTOSPC_INDEV: $INDEV"
+        if [ "$VERSION" != "$TAG" ]; then
+          echo "::error file=src/util.hpp::Tag $TAG does not match CRAFTOSPC_VERSION $VERSION. Update src/util.hpp (and the other version files listed in TODO.md), commit, and tag again."
+          exit 1
+        fi
+        if [ "$INDEV" != "false" ]; then
+          echo "::error file=src/util.hpp::CRAFTOSPC_INDEV must be false for a release build (it disables the update check)."
+          exit 1
+        fi
+      env:
+        TAG: ${{ github.ref_name }}
+
   build:
     name: Build
-    if: ${{ github.ref_type == 'tag' }}
+    needs: check
     uses: ./.github/workflows/main.yml
 
   package:

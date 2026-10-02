@@ -120,6 +120,28 @@ jobs:
           echo "::warning::CraftOSTest did not finish (timed out or was cancelled)"
         fi
         if [ -e "$RUNNER_TEMP/retval" ]; then exit "$(cat "$RUNNER_TEMP/retval")"; fi
+    - name: Test crash log
+      if: ${{ matrix.id == 'full' }}
+      timeout-minutes: 2
+      run: |
+        # A crash must leave a log on disk (nothing is uploaded), and the next start must point to it.
+        rm -rf ~/.local/share/craftos-pc/crash-logs
+        echo 'while true do sleep(0.1) end' > "$RUNNER_TEMP/loop.lua"
+        echo 'os.shutdown()' > "$RUNNER_TEMP/exit.lua"
+        ./craftos-tweaked --headless --script "$RUNNER_TEMP/loop.lua" &
+        PID=$!
+        sleep 5
+        kill -SEGV $PID
+        sleep 2
+        kill -9 $PID || true
+        wait $PID || true
+        ls -l ~/.local/share/craftos-pc/crash-logs/
+        cat ~/.local/share/craftos-pc/crash-logs/crash-*.log
+        grep -q "^Reason: Segmentation fault" ~/.local/share/craftos-pc/crash-logs/crash-*.log
+        grep -q "^Backtrace:" ~/.local/share/craftos-pc/crash-logs/crash-*.log
+        ./craftos-tweaked --headless --script "$RUNNER_TEMP/exit.lua" 2>&1 | tee "$RUNNER_TEMP/second-run.txt"
+        grep -q "issues/new?template=crash_report.yml" "$RUNNER_TEMP/second-run.txt"
+        ls ~/.local/share/craftos-pc/crash-logs/*.seen.log
     - name: Upload binary
       if: ${{ matrix.id == 'full' }}
       uses: actions/upload-artifact@v4
@@ -129,6 +151,23 @@ jobs:
           craftos-tweaked
           craftos2-lua/src/liblua.so
         if-no-files-found: error
+
+  configure:
+    name: configure is up to date
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Regenerate configure
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y autoconf
+        autoconf
+    - name: Check for differences
+      run: |
+        if ! git diff --exit-code --stat configure; then
+          echo "::error file=configure::configure is out of date with configure.ac. Run the 'Regenerate configure' workflow (Actions tab) or run 'autoconf' and commit the result."
+          exit 1
+        fi
 
   cct-tests:
     name: Run CC:T tests

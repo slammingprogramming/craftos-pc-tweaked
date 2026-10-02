@@ -1,0 +1,86 @@
+# SPDX-License-Identifier: CC-BY-SA-4.0
+# Copyright (c) 2026 slammingprogramming
+# Based on the issue templates of CraftOS-PC 2, Copyright (c) 2019-2024 JackMacWindows (MIT License).
+
+name: Bug report
+description: Something in CraftOS-Tweaked does not work the way it should.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please [search the existing issues](https://github.com/slammingprogramming/craftos-pc-tweaked/issues?q=is%3Aissue) first.
+        If CraftOS-Tweaked **crashed**, use the *Crash report* form instead. If a program behaves differently from CC: Tweaked, use *Compatibility difference*.
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug. Include what you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps, or a small Lua program, that reproduces the problem.
+      placeholder: |
+        1. Run `...`
+        2. Type `...`
+        3. See the error
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: CraftOS-Tweaked version
+      description: Run `os.about()` in a computer, or `craftos-tweaked --version`.
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Operating system
+      options:
+        - Windows (x64)
+        - Windows (ARM64)
+        - Linux (x86_64)
+        - Linux (other)
+        - macOS
+        - iOS
+        - Android
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: renderer
+    attributes:
+      label: Renderer / mode
+      options:
+        - GUI (SDL window)
+        - GUI (hardware renderer)
+        - CLI (terminal)
+        - Headless
+        - Raw mode / other
+        - Not sure
+  - type: dropdown
+    id: source
+    attributes:
+      label: How did you get CraftOS-Tweaked?
+      options:
+        - GitHub release
+        - GitHub Actions build artifact
+        - Built from source
+        - Other
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, screenshots or recordings
+      description: Paste error messages here. Screenshots and recordings can be taken with F2, F3 and F12. This text is formatted as code automatically.
+      render: shell
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Plugins you use, relevant settings, whether it also happens in CC Tweaked, ...

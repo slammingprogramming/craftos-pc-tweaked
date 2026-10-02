@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: CC-BY-SA-4.0
+# Copyright (c) 2026 slammingprogramming
+# Based on the issue templates of CraftOS-PC 2, Copyright (c) 2019-2024 JackMacWindows (MIT License).
+
+name: Feature request
+description: Suggest an idea for CraftOS-Tweaked.
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe what you are trying to do and why it is hard or impossible today.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you have considered
+  - type: dropdown
+    id: cct
+    attributes:
+      label: Does CC Tweaked have this?
+      options:
+        - Yes, CC Tweaked has it
+        - No, it is specific to CraftOS-Tweaked
+        - Not sure
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, mock-ups, links.

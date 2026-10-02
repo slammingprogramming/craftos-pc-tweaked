@@ -36,6 +36,7 @@ extern "C" {
 #include <wordexp.h>
 #include "../platform.hpp"
 #include "../util.hpp"
+#include "../crashlog_posix.hpp"
 
 #ifdef CUSTOM_ROM_DIR
 const char * rom_path = CUSTOM_ROM_DIR;
@@ -161,14 +162,19 @@ void handler(int sig) {
     // get void*'s for all entries on the stack
     size = backtrace(array, 25);
 
+    // Save a crash log. Nothing is uploaded; on the next start the user is offered a pre-filled GitHub issue.
+    saveCrashLogPosix("macOS (console build)", sig, "", array, (int)size);
+
     // print out all the frames to stderr
     if (!loadingPlugin.empty()) fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. It appears the plugin \"%s\" may have been responsible for this. Please remove it and try again.\n", strsignal(sig), loadingPlugin.c_str());
-    else fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". Include the following text in your report:\nOS: Mac (Console build)\nLast C function: %s\n", strsignal(sig), lastCFunction);
+    else fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. A crash log was saved%s%s (nothing was uploaded). Start CraftOS-Tweaked again for a pre-filled bug report, or report this at " CRAFTOSTWEAKED_BUGREPORT_URL " and include the following text:\nOS: Mac (Console build)\nLast C function: %s\n", strsignal(sig), lastCrashLogPath() ? " to " : "", lastCrashLogPath() ? (const char *)lastCrashLogPath() : "", lastCFunction);
     backtrace_symbols_fd(array, size, STDERR_FILENO);
     signal(sig, NULL);
 }
 
 void setupCrashHandler() {
+    initCrashLog();
+    {void * preload[1]; backtrace(preload, 1);} // load the unwinder now so the crash handler doesn't have to
     signal(SIGSEGV, handler);
     signal(SIGILL, handler);
     signal(SIGBUS, handler);

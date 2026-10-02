@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (c) 2026 slammingprogramming
+#
+# The "configure" script is generated from configure.ac by Autoconf. Run this
+# workflow from the Actions tab (choose your branch) after changing
+# configure.ac; it regenerates the script and commits the result to that branch.
+# The CI workflow fails if the committed script is out of date.
+
+name: Regenerate configure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    name: Regenerate configure
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Autoconf
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y autoconf
+    - name: Run autoconf
+      run: |
+        autoconf --version | head -1
+        autoconf
+    - name: Commit the result
+      run: |
+        if git diff --quiet configure; then
+          echo "configure is already up to date"
+          exit 0
+        fi
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add configure
+        git commit -m "Regenerate configure"
+        git push

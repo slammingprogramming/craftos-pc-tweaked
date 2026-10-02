@@ -144,7 +144,6 @@ std::unordered_map<std::string, std::pair<int, int> > configSettings = {
     {"http_timeout", {0, 1}},
     {"extendMargins", {0, 0}},
     {"snapToSize", {0, 0}},
-    {"snooperEnabled", {2, 0}},
     {"computerWidth", {2, 1}},
     {"computerHeight", {2, 1}},
     {"keepOpenOnShutdown", {0, 0}},
@@ -342,7 +341,6 @@ void config_init() {
         readConfigSetting(http_proxy_port, Int);
         readConfigSetting(extendMargins, Bool);
         readConfigSetting(snapToSize, Bool);
-        readConfigSetting(snooperEnabled, Bool);
 #if !(defined(__IPHONEOS__) || defined(__ANDROID__))
         readConfigSetting(keepOpenOnShutdown, Bool);
 #endif
@@ -429,7 +427,6 @@ void config_save() {
     root["http_proxy_port"] = config.http_proxy_port;
     root["extendMargins"] = config.extendMargins;
     root["snapToSize"] = config.snapToSize;
-    root["snooperEnabled"] = config.snooperEnabled;
     root["keepOpenOnShutdown"] = config.keepOpenOnShutdown;
     root["useWebP"] = config.useWebP;
     root["dropFilePath"] = config.dropFilePath;

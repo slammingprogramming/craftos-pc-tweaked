@@ -60,8 +60,8 @@ MANIFEST                RT_MANIFEST             "..\\..\\resources\\CraftOS-Twea
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,8,3,0
- PRODUCTVERSION 2,8,3,0
+ FILEVERSION 0,1,0,0
+ PRODUCTVERSION 0,1,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -77,12 +77,12 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "CraftOS-Tweaked"
-            VALUE "FileVersion", "2.8.3.0"
+            VALUE "FileVersion", "0.1.0.0"
             VALUE "InternalName", "CraftOS-Tweaked.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019-2024 JackMacWindows. Copyright (C) 2026 slammingprogramming."
             VALUE "OriginalFilename", "CraftOS-Tweaked.exe"
             VALUE "ProductName", "CraftOS-Tweaked"
-            VALUE "ProductVersion", "2.8.3.0"
+            VALUE "ProductVersion", "0.1.0.0"
         END
     END
     BLOCK "VarFileInfo"

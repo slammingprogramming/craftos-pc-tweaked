@@ -45,6 +45,7 @@ extern "C" {
 #endif
 #include "../platform.hpp"
 #include "../util.hpp"
+#include "../crashlog_posix.hpp"
 
 #ifdef CUSTOM_ROM_DIR
 const char * rom_path = CUSTOM_ROM_DIR;
@@ -564,12 +565,18 @@ void crit_err_hdlr(int sig_num, siginfo_t * info, void * ucontext) {
 #else
 #error Unsupported architecture. // TODO: Add support for other arch.
 #endif
-    if (!loadingPlugin.empty()) fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. It appears the plugin \"%s\" may have been responsible for this. Please remove it and try again.\n", strsignal(sig_num), loadingPlugin.c_str());
-    else fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s (%d). Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". Include the following text in your report:\n", strsignal(sig_num), sig_num);
-    fprintf(stderr, "OS: Linux\nAddress is %p from %p\nLast C function: %s\n", info->si_addr, (void *)caller_address, lastCFunction);
     size = backtrace(array, 25);
     /* overwrite sigaction with caller's address */
     array[1] = caller_address;
+    // Save a crash log. Nothing is uploaded; on the next start the user is offered a pre-filled GitHub issue.
+    {
+        char extra[128];
+        snprintf(extra, sizeof(extra), "Address is %p from %p\n", info->si_addr, (void *)caller_address);
+        saveCrashLogPosix("Linux", sig_num, extra, array + 1, size > 1 ? size - 1 : 0);
+    }
+    if (!loadingPlugin.empty()) fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. It appears the plugin \"%s\" may have been responsible for this. Please remove it and try again.\n", strsignal(sig_num), loadingPlugin.c_str());
+    else fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s (%d). A crash log was saved%s%s (nothing was uploaded). Start CraftOS-Tweaked again for a pre-filled bug report, or report this at " CRAFTOSTWEAKED_BUGREPORT_URL " and include the following text:\n", strsignal(sig_num), sig_num, lastCrashLogPath() ? " to " : "", lastCrashLogPath() ? lastCrashLogPath() : "");
+    fprintf(stderr, "OS: Linux\nAddress is %p from %p\nLast C function: %s\n", info->si_addr, (void *)caller_address, lastCFunction);
     messages = backtrace_symbols(array, size);
     /* skip first stack frame (points here) */
     for (i = 1; i < size && messages != NULL; ++i) 
@@ -582,6 +589,8 @@ void crit_err_hdlr(int sig_num, siginfo_t * info, void * ucontext) {
         fprintf(stderr, "Error setting signal handler for %d (%s), continuing.\n", type, strsignal(type));
 
 void setupCrashHandler() {
+    initCrashLog();
+    {void * preload[1]; backtrace(preload, 1);} // load the unwinder now so the crash handler doesn't have to
     struct sigaction sigact;
     memset(&sigact, 0, sizeof(sigact));
     sigact.sa_sigaction = crit_err_hdlr;

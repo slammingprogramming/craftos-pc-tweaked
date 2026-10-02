@@ -81,7 +81,6 @@ static int config_get(lua_State *L) {
     getConfigSetting(http_timeout, integer);
     getConfigSetting(extendMargins, boolean);
     getConfigSetting(snapToSize, boolean);
-    getConfigSetting(snooperEnabled, boolean);
     getConfigSetting(keepOpenOnShutdown, boolean);
     getConfigSetting(useWebP, boolean);
     getConfigSetting(dropFilePath, boolean);
@@ -218,7 +217,6 @@ static int config_set(lua_State *L) {
     setConfigSettingI(http_timeout);
     setConfigSetting(extendMargins, boolean);
     setConfigSetting(snapToSize, boolean);
-    setConfigSetting(snooperEnabled, boolean);
     setConfigSetting(keepOpenOnShutdown, boolean);
     setConfigSetting(useWebP, boolean);
     setConfigSetting(dropFilePath, boolean);

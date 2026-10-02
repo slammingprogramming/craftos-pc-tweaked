@@ -23,7 +23,12 @@
 #include "util.hpp"
 #ifndef WIN32
 #include <libgen.h>
+#include <fcntl.h>
+#include <unistd.h>
 #endif
+#include <cstdarg>
+#include <ctime>
+#include <fstream>
 
 #ifdef STANDALONE_ROM
 extern FileEntry standaloneROM;
@@ -450,4 +455,168 @@ bool matchIPClass(const std::string& address, const std::string& pattern) {
                 if ((ip & (0xFFFFFFFFu << cl.second)) == cl.first) return true;
     } // check IPv6 addresses
     return false;
+}
+
+
+/* ---- Crash logs ---- */
+
+static path_t::value_type crashLogDirNative[2048] = {0};
+static path_t::value_type crashLogFileNative[2200] = {0};
+
+void initCrashLog() {
+    try {
+        const path_t dir = getBasePath() / "crash-logs";
+        std::error_code ec;
+        fs::create_directories(dir, ec);
+        const path_t::string_type& native = dir.native();
+        if (native.size() < sizeof(crashLogDirNative) / sizeof(crashLogDirNative[0]) - 1) {
+            std::copy(native.begin(), native.end(), crashLogDirNative);
+            crashLogDirNative[native.size()] = 0;
+        }
+    } catch (...) {}
+}
+
+size_t beginCrashReport(char * buf, size_t size, const char * platform, const char * reason) {
+    char when[32] = "unknown";
+    const time_t now = time(NULL);
+    struct tm tmv;
+#ifdef _WIN32
+    if (gmtime_s(&tmv, &now) == 0)
+#else
+    if (gmtime_r(&now, &tmv) != NULL)
+#endif
+        strftime(when, sizeof(when), "%Y-%m-%d %H:%M:%S", &tmv);
+    int n = snprintf(buf, size,
+        "CraftOS-Tweaked crash log\n"
+        "=========================\n"
+        "This file was saved on your computer when CraftOS-Tweaked crashed. Nothing has been sent anywhere.\n"
+        "It may contain file paths (which can include your user name), so look it over before you share it.\n"
+        "Report problems at " CRAFTOSTWEAKED_BUGREPORT_URL "\n\n"
+        "Version: " CRAFTOSPC_VERSION
+#if defined(CRAFTOSPC_COMMIT)
+        " (commit " CRAFTOSPC_COMMIT ")"
+#endif
+        "\nComputerCraft version: " CRAFTOSPC_CC_VERSION "\n"
+        "Platform: %s\n"
+        "Time (UTC): %s\n"
+        "Reason: %s\n",
+        platform, when, reason);
+    if (n < 0) return 0;
+    if ((size_t)n >= size) return size - 1;
+    return (size_t)n;
+}
+
+const path_t::value_type * newCrashLogPath() {
+    if (crashLogDirNative[0] == 0) return NULL;
+    char name[48];
+    const time_t now = time(NULL);
+    struct tm tmv;
+#ifdef _WIN32
+    if (gmtime_s(&tmv, &now) != 0) return NULL;
+#else
+    if (gmtime_r(&now, &tmv) == NULL) return NULL;
+#endif
+    strftime(name, sizeof(name), "crash-%Y%m%d-%H%M%S.log", &tmv);
+    size_t i = 0;
+    while (crashLogDirNative[i] != 0 && i < 2047) { crashLogFileNative[i] = crashLogDirNative[i]; i++; }
+    crashLogFileNative[i++] = (path_t::value_type)fs::path::preferred_separator;
+    for (const char * c = name; *c != 0; c++) crashLogFileNative[i++] = (path_t::value_type)*c;
+    crashLogFileNative[i] = 0;
+    return crashLogFileNative;
+}
+
+const path_t::value_type * lastCrashLogPath() {
+    return crashLogFileNative[0] != 0 ? crashLogFileNative : NULL;
+}
+
+size_t crashReportf(char * buf, size_t size, size_t used, const char * fmt, ...) {
+    if (used >= size) return used;
+    va_list args;
+    va_start(args, fmt);
+    const int n = vsnprintf(buf + used, size - used, fmt, args);
+    va_end(args);
+    if (n < 0) return used;
+    return (size_t)n >= size - used ? size - 1 : used + (size_t)n;
+}
+
+#ifndef _WIN32
+int openCrashLog() {
+    const path_t::value_type * path = newCrashLogPath();
+    if (path == NULL) return -1;
+    const int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd < 0) crashLogFileNative[0] = 0; // nothing was saved
+    return fd;
+}
+#endif
+
+static bool isCrashLog(const path_t& p) {
+    const std::string name = p.filename().string();
+    return name.size() > 10 && name.compare(0, 6, "crash-") == 0 && name.compare(name.size() - 4, 4, ".log") == 0 &&
+        (name.size() < 9 || name.compare(name.size() - 9, 9, ".seen.log") != 0);
+}
+
+std::vector<path_t> pendingCrashLogs() {
+    std::vector<path_t> retval;
+    try {
+        std::error_code ec;
+        const path_t dir = getBasePath() / "crash-logs";
+        for (fs::directory_iterator it(dir, ec), end; !ec && it != end; it.increment(ec))
+            if (it->is_regular_file(ec) && isCrashLog(it->path())) retval.push_back(it->path());
+        std::sort(retval.begin(), retval.end());
+    } catch (...) {}
+    return retval;
+}
+
+void markCrashLogsSeen(const std::vector<path_t>& logs) {
+    for (const path_t& log : logs) {
+        std::error_code ec;
+        path_t seen = log;
+        seen.replace_extension(".seen.log");
+        fs::rename(log, seen, ec);
+    }
+}
+
+static std::string urlEncode(const std::string& str) {
+    static const char hex[] = "0123456789ABCDEF";
+    std::string out;
+    for (unsigned char c : str) {
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '.' || c == '_' || c == '~') out += (char)c;
+        else {out += '%'; out += hex[c >> 4]; out += hex[c & 15];}
+    }
+    return out;
+}
+
+std::string crashReportIssueURL(const path_t& log) {
+    std::string version, platform, reason, details;
+    {
+        std::ifstream in(log, std::ios::binary);
+        std::string line;
+        bool inDetails = false;
+        while (std::getline(in, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            if (inDetails) {
+                if (details.size() < 1800) details += line + "\n";
+            } else if (line == "Details:") inDetails = true;
+            else if (line.compare(0, 9, "Version: ") == 0) version = line.substr(9);
+            else if (line.compare(0, 10, "Platform: ") == 0) platform = line.substr(10);
+            else if (line.compare(0, 8, "Reason: ") == 0) reason = line.substr(8);
+        }
+    }
+    // GitHub limits URL length, so only the start of the details are included. The full log is attached by hand.
+    return std::string(CRAFTOSTWEAKED_BUGREPORT_URL "/new?template=crash_report.yml") +
+        "&title=" + urlEncode("Crash: " + reason) +
+        "&version=" + urlEncode(version) +
+        "&platform=" + urlEncode(platform) +
+        "&crash_details=" + urlEncode("Reason: " + reason + "\n" + details);
+}
+
+std::string crashLogFolderURL() {
+    std::string path = (getBasePath() / "crash-logs").generic_u8string();
+    std::string out = "file://";
+    if (!path.empty() && path[0] != '/') out += '/'; // Windows drive letters
+    for (unsigned char c : path) {
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '.' || c == '_' || c == '~' || c == '/' || c == ':') out += (char)c;
+        else {static const char hex[] = "0123456789ABCDEF"; out += '%'; out += hex[c >> 4]; out += hex[c & 15];}
+    }
+    return out;
 }

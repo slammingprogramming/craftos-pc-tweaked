@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: CC-BY-SA-4.0
+# Copyright (c) 2026 slammingprogramming
+# Based on the issue templates of CraftOS-PC 2, Copyright (c) 2019-2024 JackMacWindows (MIT License).
+
+name: Compatibility difference
+description: A program or API behaves differently in CraftOS-Tweaked than in CC Tweaked.
+title: "[Compat] "
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        CraftOS-Tweaked aims to behave like CC Tweaked. Tell us where it does not.
+  - type: textarea
+    id: difference
+    attributes:
+      label: What is different?
+      description: What does the code do in CC Tweaked, and what does it do in CraftOS-Tweaked?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal Lua program
+      description: The smallest program that shows the difference.
+      render: lua
+    validations:
+      required: true
+  - type: input
+    id: cct_version
+    attributes:
+      label: CC Tweaked version you compared against
+      placeholder: e.g. 1.116.1 (Minecraft 1.20.1)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: CraftOS-Tweaked version
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Links
+      description: Link to the CC Tweaked documentation or source that describes the expected behaviour, if you have it.

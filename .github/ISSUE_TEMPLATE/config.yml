@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: CC-BY-SA-4.0
+# Copyright (c) 2026 slammingprogramming
+# Based on the issue templates of CraftOS-PC 2, Copyright (c) 2019-2024 JackMacWindows (MIT License).
+
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/slammingprogramming/craftos-pc-tweaked/security/advisories/new
+    about: Sandbox escapes, arbitrary code execution and similar problems should be reported privately, not as a public issue. See SECURITY.md.
+  - name: CC Tweaked documentation
+    url: https://tweaked.cc/
+    about: Check how CC Tweaked itself behaves before reporting a compatibility difference.

@@ -34,7 +34,6 @@
 #include <dirent.h>
 #include <SDL2/SDL_syswm.h>
 #include <sys/stat.h>
-#include <zlib.h>
 #include "../platform.hpp"
 #include "../util.hpp"
 
@@ -267,195 +266,77 @@ void copyImage(SDL_Surface* surf, SDL_Window* win) {
     delete[] bmp;
 }
 
-LONG WINAPI exceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
-    if (!loadingPlugin.empty()) MessageBoxA(NULL, std::string("Uh oh, CraftOS-Tweaked has crashed! It appears the plugin \"" + loadingPlugin + "\" may have been responsible for this. Please remove it and try again. CraftOS-Tweaked will now close.").c_str(), "Application Error", MB_OK | MB_ICONSTOP);
-#ifdef CRASHREPORT_API_KEY
-    else if (config.snooperEnabled) MessageBoxA(NULL, "Uh oh, CraftOS-Tweaked has crashed! A crash log has been saved and will be uploaded on next launch. CraftOS-Tweaked will now close.", "Application Error", MB_OK | MB_ICONSTOP);
+static const char * exceptionName(DWORD code) {
+    switch (code) {
+    case EXCEPTION_ACCESS_VIOLATION: return "Access violation";
+    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED: return "Array bounds exceeded";
+    case EXCEPTION_DATATYPE_MISALIGNMENT: return "Datatype misalignment";
+    case EXCEPTION_FLT_DIVIDE_BY_ZERO: return "Floating-point divide by zero";
+    case EXCEPTION_ILLEGAL_INSTRUCTION: return "Illegal instruction";
+    case EXCEPTION_IN_PAGE_ERROR: return "In-page error";
+    case EXCEPTION_INT_DIVIDE_BY_ZERO: return "Integer divide by zero";
+    case EXCEPTION_PRIV_INSTRUCTION: return "Privileged instruction";
+    case EXCEPTION_STACK_OVERFLOW: return "Stack overflow";
+    default: return "Unhandled exception";
+    }
+}
+
+#if defined(_M_ARM64)
+#define CRASH_PLATFORM "Windows (ARM64)"
+#else
+#define CRASH_PLATFORM "Windows (x64)"
 #endif
-    else MessageBoxA(NULL, std::string("Uh oh, CraftOS-Tweaked has crashed! Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". When writing the report, attach the latest CraftOS-Tweaked.exe .dmp file located here (you can type this into the File Explorer): '%LOCALAPPDATA%\\CrashDumps'. Add this text to the report as well: \"Last C function: " + std::string(lastCFunction) + "\". CraftOS-Tweaked will now close.").c_str(), "Application Error", MB_OK | MB_ICONSTOP);
+
+// Saves a crash log and tells the user where it is. Nothing is uploaded; on the next start CraftOS-Tweaked offers to
+// open a pre-filled GitHub issue (see offerPendingCrashReport in main.cpp).
+LONG WINAPI exceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+    static volatile LONG handling = 0;
+    if (InterlockedCompareExchange(&handling, 1, 0) != 0) return EXCEPTION_CONTINUE_SEARCH; // already crashing
+    static char report[16384];
+    char reason[160];
+    const DWORD code = pExceptionInfo->ExceptionRecord->ExceptionCode;
+    snprintf(reason, sizeof(reason), "%s (0x%08lX) at address %p", exceptionName(code), (unsigned long)code, pExceptionInfo->ExceptionRecord->ExceptionAddress);
+    size_t n = beginCrashReport(report, sizeof(report), CRASH_PLATFORM, reason);
+    n = crashReportf(report, sizeof(report), n, "Details:\nLast C function: %s\n", lastCFunction);
+    if (!loadingPlugin.empty()) n = crashReportf(report, sizeof(report), n, "Plugin being loaded: %s\n", loadingPlugin.c_str());
+    n = crashReportf(report, sizeof(report), n, "Backtrace (module+offset; resolve with the matching .pdb symbols):\n");
+    void * frames[48];
+    const USHORT count = CaptureStackBackTrace(0, 48, frames, NULL);
+    for (USHORT i = 0; i < count + 1; i++) {
+        void * addr = i == 0 ? pExceptionInfo->ExceptionRecord->ExceptionAddress : frames[i - 1];
+        HMODULE mod = NULL;
+        char modName[MAX_PATH] = "?";
+        if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)addr, &mod) && GetModuleFileNameA(mod, modName, MAX_PATH) > 0) {
+            const char * base = strrchr(modName, '\\');
+            n = crashReportf(report, sizeof(report), n, "[bt]: (%u) %s+0x%llX\n", (unsigned)i, base ? base + 1 : modName, (unsigned long long)((char*)addr - (char*)mod));
+        } else n = crashReportf(report, sizeof(report), n, "[bt]: (%u) %p\n", (unsigned)i, addr);
+    }
+    bool saved = false;
+    const wchar_t * logPath = newCrashLogPath();
+    if (logPath != NULL) {
+        const HANDLE h = CreateFileW(logPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (h != INVALID_HANDLE_VALUE) {
+            DWORD written = 0;
+            WriteFile(h, report, (DWORD)n, &written, NULL);
+            CloseHandle(h);
+            saved = true;
+        }
+    }
+    std::wstring msg = L"Uh oh, CraftOS-Tweaked has crashed!";
+    if (!loadingPlugin.empty()) msg += L" It appears the plugin \"" + std::wstring(loadingPlugin.begin(), loadingPlugin.end()) + L"\" may have been responsible for this. Please remove it and try again.";
+    if (saved) msg += std::wstring(L"\n\nA crash log was saved to:\n") + logPath + L"\n\nNothing has been uploaded. The next time you start CraftOS-Tweaked you can choose to open a pre-filled bug report on GitHub. You can also report it at " L"" CRAFTOSTWEAKED_BUGREPORT_URL L" and attach the log.";
+    else msg += L"\n\nThe crash log could not be saved. Please report this at " L"" CRAFTOSTWEAKED_BUGREPORT_URL L".";
+    MessageBoxW(NULL, msg.c_str(), L"Application Error", MB_OK | MB_ICONERROR);
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
 // Do nothing. We definitely don't want to crash when there's only an invalid parameter, and I assume functions affected will return some value that won't cause problems. (I know strftime, used in os.date, will be fine.)
 void invalidParameterHandler(const wchar_t * expression, const wchar_t * function, const wchar_t * file, unsigned int line, uintptr_t pReserved) {}
 
-#ifdef CRASHREPORT_API_KEY
-#include "../apikey.cpp" // if you get an error here, please go into Project Properties => C/C++ => Preprocessor => Preprocessor Defines and remove "CRASHREPORT_API_KEY" from the list
-
-const std::string amazon_root_certificate = "-----BEGIN CERTIFICATE-----\n\
-MIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF\n\
-ADA5MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6\n\
-b24gUm9vdCBDQSAxMB4XDTE1MDUyNjAwMDAwMFoXDTM4MDExNzAwMDAwMFowOTEL\n\
-MAkGA1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEZMBcGA1UEAxMQQW1hem9uIFJv\n\
-b3QgQ0EgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALJ4gHHKeNXj\n\
-ca9HgFB0fW7Y14h29Jlo91ghYPl0hAEvrAIthtOgQ3pOsqTQNroBvo3bSMgHFzZM\n\
-9O6II8c+6zf1tRn4SWiw3te5djgdYZ6k/oI2peVKVuRF4fn9tBb6dNqcmzU5L/qw\n\
-IFAGbHrQgLKm+a/sRxmPUDgH3KKHOVj4utWp+UhnMJbulHheb4mjUcAwhmahRWa6\n\
-VOujw5H5SNz/0egwLX0tdHA114gk957EWW67c4cX8jJGKLhD+rcdqsq08p8kDi1L\n\
-93FcXmn/6pUCyziKrlA4b9v7LWIbxcceVOF34GfID5yHI9Y/QCB/IIDEgEw+OyQm\n\
-jgSubJrIqg0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC\n\
-AYYwHQYDVR0OBBYEFIQYzIU07LwMlJQuCFmcx7IQTgoIMA0GCSqGSIb3DQEBCwUA\n\
-A4IBAQCY8jdaQZChGsV2USggNiMOruYou6r4lK5IpDB/G/wkjUu0yKGX9rbxenDI\n\
-U5PMCCjjmCXPI6T53iHTfIUJrU6adTrCC2qJeHZERxhlbI1Bjjt/msv0tadQ1wUs\n\
-N+gDS63pYaACbvXy8MWy7Vu33PqUXHeeE6V/Uq2V8viTO96LXFvKWlJbYK8U90vv\n\
-o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU\n\
-5MsI+yMRQ+hDKXJioaldXgjUkK642M4UwtBV8ob2xJNDd2ZhwLnoQdeXeGADbkpy\n\
-rqXRfboQnoZsG4q5WTP468SQvvG5\n\
------END CERTIFICATE-----";
-
-const std::string amazon_certificate = "-----BEGIN CERTIFICATE-----\n\
-MIIESTCCAzGgAwIBAgITBntQXCplJ7wevi2i0ZmY7bibLDANBgkqhkiG9w0BAQsF\n\
-ADA5MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6\n\
-b24gUm9vdCBDQSAxMB4XDTE1MTAyMTIyMjQzNFoXDTQwMTAyMTIyMjQzNFowRjEL\n\
-MAkGA1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEVMBMGA1UECxMMU2VydmVyIENB\n\
-IDFCMQ8wDQYDVQQDEwZBbWF6b24wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK\n\
-AoIBAQDCThZn3c68asg3Wuw6MLAd5tES6BIoSMzoKcG5blPVo+sDORrMd4f2AbnZ\n\
-cMzPa43j4wNxhplty6aUKk4T1qe9BOwKFjwK6zmxxLVYo7bHViXsPlJ6qOMpFge5\n\
-blDP+18x+B26A0piiQOuPkfyDyeR4xQghfj66Yo19V+emU3nazfvpFA+ROz6WoVm\n\
-B5x+F2pV8xeKNR7u6azDdU5YVX1TawprmxRC1+WsAYmz6qP+z8ArDITC2FMVy2fw\n\
-0IjKOtEXc/VfmtTFch5+AfGYMGMqqvJ6LcXiAhqG5TI+Dr0RtM88k+8XUBCeQ8IG\n\
-KuANaL7TiItKZYxK1MMuTJtV9IblAgMBAAGjggE7MIIBNzASBgNVHRMBAf8ECDAG\n\
-AQH/AgEAMA4GA1UdDwEB/wQEAwIBhjAdBgNVHQ4EFgQUWaRmBlKge5WSPKOUByeW\n\
-dFv5PdAwHwYDVR0jBBgwFoAUhBjMhTTsvAyUlC4IWZzHshBOCggwewYIKwYBBQUH\n\
-AQEEbzBtMC8GCCsGAQUFBzABhiNodHRwOi8vb2NzcC5yb290Y2ExLmFtYXpvbnRy\n\
-dXN0LmNvbTA6BggrBgEFBQcwAoYuaHR0cDovL2NybC5yb290Y2ExLmFtYXpvbnRy\n\
-dXN0LmNvbS9yb290Y2ExLmNlcjA/BgNVHR8EODA2MDSgMqAwhi5odHRwOi8vY3Js\n\
-LnJvb3RjYTEuYW1hem9udHJ1c3QuY29tL3Jvb3RjYTEuY3JsMBMGA1UdIAQMMAow\n\
-CAYGZ4EMAQIBMA0GCSqGSIb3DQEBCwUAA4IBAQAfsaEKwn17DjAbi/Die0etn+PE\n\
-gfY/I6s8NLWkxGAOUfW2o+vVowNARRVjaIGdrhAfeWHkZI6q2pI0x/IJYmymmcWa\n\
-ZaW/2R7DvQDtxCkFkVaxUeHvENm6IyqVhf6Q5oN12kDSrJozzx7I7tHjhBK7V5Xo\n\
-TyS4NU4EhSyzGgj2x6axDd1hHRjblEpJ80LoiXlmUDzputBXyO5mkcrplcVvlIJi\n\
-WmKjrDn2zzKxDX5nwvkskpIjYlJcrQu4iCX1/YwZ1yNqF9LryjlilphHCACiHbhI\n\
-RnGfN8j8KLDVmWyTYMk8V+6j0LI4+4zFh2upqGMQHL3VFVFWBek6vCDWhB/b\n\
------END CERTIFICATE-----";
-
-// TODO(slammingprogramming): the default upload URL below belongs to upstream. Crash upload is compiled out of
-// CraftOS-Tweaked builds (no CRASHREPORT_API_KEY); only enable it with our own endpoint (see TODO.md).
-static bool pushCrashDump(const char * data, const size_t size, const path_t& path, const std::string& url = "https://kkppoknwel.execute-api.us-east-2.amazonaws.com/dev/uploadCrashDump", const std::string& method = "POST") {
-    Poco::URI uri(url);
-    Poco::Net::Context::Ptr ctx = new Poco::Net::Context(Poco::Net::Context::TLS_CLIENT_USE, "", Poco::Net::Context::VERIFY_STRICT, 9, false, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
-#if POCO_VERSION >= 0x010A0000
-    ctx->disableProtocols(Poco::Net::Context::PROTO_TLSV1_3);
-#endif
-    std::stringstream rootcertstream(amazon_root_certificate);
-    Poco::Crypto::X509Certificate rootcert(rootcertstream);
-    ctx->addCertificateAuthority(rootcert);
-    std::stringstream certstream(amazon_certificate);
-    Poco::Crypto::X509Certificate cert(certstream);
-    ctx->addCertificateAuthority(cert);
-    ctx->enableExtendedCertificateVerification();
-    Poco::Net::HTTPSClientSession session(uri.getHost(), uri.getPort(), ctx);
-    if (!config.http_proxy_server.empty()) session.setProxy(config.http_proxy_server, config.http_proxy_port);
-    Poco::Net::HTTPRequest request(method, uri.getPathAndQuery(), Poco::Net::HTTPMessage::HTTP_1_1);
-    Poco::Net::HTTPResponse response;
-    session.setTimeout(Poco::Timespan(5000000));
-    request.add("Host", uri.getHost());
-    request.add("User-Agent", "CraftOS-Tweaked/" CRAFTOSPC_VERSION " ComputerCraft/" CRAFTOSPC_CC_VERSION);
-    request.add("X-API-Key", getAPIKey());
-    request.add("x-amz-server-side-encryption", "AES256");
-    request.setContentType("application/gzip");
-    request.setContentLength(size);
-    try {
-        session.sendRequest(request).write(data, size);
-        std::istream& stream = session.receiveResponse(response);
-        if (response.getStatus() / 100 == 3 && response.has("Location")) 
-            return pushCrashDump(data, size, path, response.get("Location"), method);
-        else if (response.getStatus() == 200 && method == "POST") {
-            Value root;
-            Poco::JSON::Object::Ptr p = root.parse(stream);
-            if (root.isMember("uploadURL")) {
-                return pushCrashDump(data, size, path, root["uploadURL"].asString(), "PUT");
-            } else if (root.isMember("error")) {
-                fprintf(stderr, "Warning: Couldn't upload crash dump at %s: %s\n", path.string().c_str(), root["error"].asString().c_str());
-                return false;
-            } else if (root.isMember("message")) {
-                fprintf(stderr, "Warning: Couldn't upload crash dump at %s: %s\n", path.string().c_str(), root["message"].asString().c_str());
-                return false;
-            }
-        }
-    } catch (Poco::Net::SSLException &e) {
-        fprintf(stderr, "Warning: Couldn't upload crash dump at %s: %s\n", path.string().c_str(), e.message().c_str());
-        return false;
-    } catch (Poco::Exception &e) {
-        fprintf(stderr, "Warning: Couldn't upload crash dump at %s: %s\n", path.string().c_str(), e.displayText().c_str());
-        return false;
-    }
-    return true;
-}
-#endif
-
-// We're relying on WER to automatically generate a minidump here.
-// If this is an official build with an API key, we'll automatically upload the dump on next start
 void setupCrashHandler() {
+    initCrashLog();
     SetUnhandledExceptionFilter(exceptionHandler);
     _set_invalid_parameter_handler(invalidParameterHandler);
-}
-
-void uploadCrashDumps() {
-#ifdef CRASHREPORT_API_KEY
-    if (config.snooperEnabled) {
-        WIN32_FIND_DATAW find;
-        wchar_t path[32767];
-        ExpandEnvironmentStringsW(L"%LOCALAPPDATA%\\CrashDumps\\", path, 32767);
-        std::wstring searchpath = std::wstring(path) + L"CraftOS-Tweaked.exe.*.dmp";
-        const HANDLE h = FindFirstFileW(searchpath.c_str(), &find);
-        if (h != INVALID_HANDLE_VALUE) {
-            do {
-                std::wstring newpath = std::wstring(path) + find.cFileName;
-                std::stringstream ss;
-                FILE * source = _wfopen(newpath.c_str(), L"rb");
-
-                int ret, flush;
-                unsigned have;
-                z_stream strm;
-                unsigned char in[16384];
-                unsigned char out[16384];
-
-                /* allocate deflate state */
-                strm.zalloc = Z_NULL;
-                strm.zfree = Z_NULL;
-                strm.opaque = Z_NULL;
-                ret = deflateInit2(&strm, 7, Z_DEFLATED, 31, 8, Z_DEFAULT_STRATEGY);
-                if (ret != Z_OK) {
-                    fclose(source);
-                    continue;
-                }
-
-                /* compress until end of file */
-                do {
-                    strm.avail_in = fread(in, 1, 16384, source);
-                    if (ferror(source)) {
-                        (void)deflateEnd(&strm);
-                        fclose(source);
-                        continue;
-                    }
-                    flush = feof(source) ? Z_FINISH : Z_NO_FLUSH;
-                    strm.next_in = in;
-
-                    /* run deflate() on input until output buffer not full, finish
-                    compression if all of source has been read in */
-                    do {
-                        strm.avail_out = 16384;
-                        strm.next_out = out;
-                        ret = deflate(&strm, flush);    /* no bad return value */
-                        assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
-                        have = 16384 - strm.avail_out;
-                        ss.write((const char*)out, have);
-                    } while (strm.avail_out == 0);
-
-                    /* done when last data in file processed */
-                } while (flush != Z_FINISH);
-
-                /* clean up and return */
-                (void)deflateEnd(&strm);
-                fclose(source);
-                std::string data = ss.str();
-                if (pushCrashDump(data.c_str(), data.size(), newpath)) DeleteFileW(newpath.c_str());
-            } while (FindNextFileW(h, &find));
-            FindClose(h);
-        }
-    }
-#endif
 }
 
 void setFloating(SDL_Window* win, bool state) {
