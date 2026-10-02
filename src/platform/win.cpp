@@ -37,9 +37,9 @@
 #include "../platform.hpp"
 #include "../util.hpp"
 
-// TODO(slammingprogramming): data and ROM locations still use the upstream "CraftOS-PC"/"craftos" names so existing
-// saves keep working. They are to be changed to match CC: Tweaked, with a migration step (see TODO.md).
-const wchar_t * base_path = L"%appdata%\\CraftOS-PC";
+// The per-user data folder. src/location.cpp decides whether it is used (or a folder next to the program, or a -d folder);
+// a CraftOS-PC 2 folder under the old name is found and offered there.
+const wchar_t * base_path = L"%appdata%\\CraftOS-Tweaked";
 path_t base_path_expanded;
 path_t rom_path_expanded;
 wchar_t expand_tmp[32768];

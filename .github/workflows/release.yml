@@ -130,6 +130,9 @@ jobs:
         Run ./craftos-tweaked to start CraftOS-Tweaked. The "roms" folder next to it holds the CC: Tweaked
         versions you can pick from (./craftos-tweaked --list-cc-versions, then --cc-version <name>).
 
+        Computers and settings are kept in a "computercraft" folder next to the program, or in your user folder
+        (the first start in a window asks; the choice is saved in craftos-tweaked.json). -d <folder> overrides it.
+
         This build was made on Ubuntu (ubuntu-latest) and uses system libraries.
         On Debian/Ubuntu you can install everything it needs with:
 

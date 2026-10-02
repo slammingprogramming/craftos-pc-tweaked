@@ -123,33 +123,32 @@ an unsigned `.ipa` for AltStore/SideStore in CI (macOS runner):
 
 Neither of these can be tested in CI beyond "it builds"; they need a real device to check.
 
-## 6. Compatibility items to change later
+## 6. Compatibility items
 
 The CC: Tweaked repository has been provided and the emulator now runs its ROM unmodified (see
-`docs/cc-tweaked-compatibility.md`). What is done and what is left:
+`docs/cc-tweaked-compatibility.md`, which also lists what is still different). What is done and what is left:
 
-* **`_HOST`**: done. It comes from the active ROM's `rom-info.json` and reads like CC: Tweaked's
-  (`ComputerCraft 1.120.2 (Minecraft 1.20.1)`). Programs that used to detect the emulator by
-  `_HOST:find("CraftOS-PC")` must use another check (`periphemu`/`config` exist only in the emulator).
-* **`os.version()`**: done by the ROM (`CraftOS 1.9`, as CC: Tweaked). `resources/CraftOSTest.lua` still checks the old
-  text; adjust it if it fails.
-* **Data and ROM locations** (still to do, needs a decision): the data directories (`%appdata%\CraftOS-PC`,
-  `~/Library/Application Support/CraftOS-PC`, `$XDG_DATA_HOME/craftos-pc`, `~/.craftos`) and the system ROM path
-  (`/usr/share/craftos`, `/usr/local/share/craftos`, `/craftos` in the WebAssembly build) are unchanged. CC: Tweaked
-  itself keeps computers under `<world>/computercraft/computer/<id>`, so there is no single path to "match"; pick
-  names (e.g. `CraftOS-Tweaked`) and add a migration that moves existing saves, or users lose their computers.
-  CI log paths and `README.md` mention them too. New ROM search paths already use `.../craftos-tweaked/roms`.
+* **`_HOST`, `os.version()`**: done; they come from the ROM, exactly like CC: Tweaked's.
+* **Data and ROM locations**: done. The default is a `computercraft` folder next to the program (CC: Tweaked's folder
+  name, and portable), or the user's folder (`CraftOS-Tweaked`) if the program's folder cannot be written; the first
+  run in a window or terminal asks and saves the answer in `craftos-tweaked.json` (see README, "Where are my files?").
+  An existing CraftOS-PC 2 folder is offered and kept when nobody can be asked. The system ROM folder is
+  `<prefix>/share/craftos-tweaked`. Only the mobile and web builds keep their sandbox folders. Not verified by CI:
+  the macOS and Windows prompts (only the Linux code path is run).
 * **Plugin API**: `api/CraftOS-PC.hpp`, the `CRAFTOSPC_*` macros and the `craftos_pc_version` field keep their names for
   plugin compatibility. When renaming, add a `CraftOS-Tweaked.hpp` that includes the old header so existing plugins
   still build.
 * The `ccpcTerm` protocol extension name is unchanged.
-* Open behavior gaps (pattern-matching time-outs, `pairs` order, DNS-resolved HTTP checks, ordered `http.rules`) are
-  listed in `docs/cc-tweaked-compatibility.md`.
+* **Turtles, command computers and pocket computers** need a Minecraft world and are not provided. The specs record
+  them as pending. If you want them, say so: a small simulated world (blocks, an inventory) would be needed first.
 
 ## 6b. ROMs and CC: Tweaked versions (you)
 
 * **Where they are**: `roms/<id>/` (see `roms/README.md`); the emulator's additions are in `roms-overlay/`. Releases ship
   the `roms` folder next to the executable, plus `CraftOS-Tweaked-ROMs.zip` on its own.
+* **The Lua patches**: `patches/craftos2-lua` holds the changes to the `craftos2-lua` submodule. They are applied by
+  `tools/apply-lua-patches.sh` (CI does it before every build). If you fork `craftos2-lua`, commit them there, point
+  `.gitmodules` at your fork and delete the folder.
 * **Auto-update**: `.github/workflows/sync-roms.yml` runs daily (and by hand from the Actions tab) and pushes new CC:
   Tweaked ROM changes to the **`rom-sync`** branch. Pushes there do not start CI (the CI workflow only listens to other
   branches), so nothing is built or published. To bring a change over: open a pull request `rom-sync` -> main (that

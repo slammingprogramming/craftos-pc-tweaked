@@ -702,6 +702,7 @@
     <ClCompile Include="src\plugin.cpp" />
     <ClCompile Include="src\util.cpp" />
     <ClCompile Include="src\mem\cluster.cpp" />
+    <ClCompile Include="src\location.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\runtime.cpp" />
     <ClCompile Include="src\peripheral\chest.cpp" />

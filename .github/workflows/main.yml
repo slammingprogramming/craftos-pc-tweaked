@@ -119,7 +119,7 @@ jobs:
       timeout-minutes: 2
     - name: Show logs
       run: |
-        cat ~/.local/share/craftos-pc/computer/0/CraftOSTest.log
+        cat computercraft/computer/0/CraftOSTest.log
         if [ "${{ steps.test.outcome }}" != "success" ]; then
           echo "::warning::CraftOSTest did not finish (timed out or was cancelled)"
         fi
@@ -129,7 +129,7 @@ jobs:
       timeout-minutes: 2
       run: |
         # A crash must leave a log on disk (nothing is uploaded), and the next start must point to it.
-        rm -rf ~/.local/share/craftos-pc/crash-logs
+        rm -rf computercraft/crash-logs
         echo 'while true do sleep(0.1) end' > "$RUNNER_TEMP/loop.lua"
         echo 'os.shutdown()' > "$RUNNER_TEMP/exit.lua"
         ./craftos-tweaked --headless --script "$RUNNER_TEMP/loop.lua" &
@@ -139,13 +139,13 @@ jobs:
         sleep 2
         kill -9 $PID || true
         wait $PID || true
-        ls -l ~/.local/share/craftos-pc/crash-logs/
-        cat ~/.local/share/craftos-pc/crash-logs/crash-*.log
-        grep -q "^Reason: Segmentation fault" ~/.local/share/craftos-pc/crash-logs/crash-*.log
-        grep -q "^Backtrace:" ~/.local/share/craftos-pc/crash-logs/crash-*.log
+        ls -l computercraft/crash-logs/
+        cat computercraft/crash-logs/crash-*.log
+        grep -q "^Reason: Segmentation fault" computercraft/crash-logs/crash-*.log
+        grep -q "^Backtrace:" computercraft/crash-logs/crash-*.log
         ./craftos-tweaked --headless --script "$RUNNER_TEMP/exit.lua" 2>&1 | tee "$RUNNER_TEMP/second-run.txt"
         grep -q "issues/new?template=crash_report.yml" "$RUNNER_TEMP/second-run.txt"
-        ls ~/.local/share/craftos-pc/crash-logs/*.seen.log
+        ls computercraft/crash-logs/*.seen.log
     - name: Upload binary
       if: ${{ matrix.id == 'full' }}
       uses: actions/upload-artifact@v4
@@ -201,7 +201,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y $LINUX_PACKAGES
+        sudo apt-get install -y $LINUX_PACKAGES xvfb  # xvfb: a virtual screen, because the monitor specs need a window
     - name: Build Lua
       run: make -C craftos2-lua linux -j"$(nproc)"
     - name: Build CraftOS-Tweaked
@@ -290,7 +290,7 @@ jobs:
       timeout-minutes: 2
     - name: Show logs
       run: |
-        type "$ENV:APPDATA\CraftOS-PC\computer\0\CraftOSTest.log"
+        type "x64\ReleaseC\computercraft\computer\0\CraftOSTest.log"
         $code = Get-Content .\retval.txt
         if ( $code -ne 0 ) { exit $code }
     - name: Upload artifact

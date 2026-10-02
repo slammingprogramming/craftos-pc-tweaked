@@ -25,12 +25,12 @@ PREFIX?=@prefix@
 prefix=$(PREFIX)
 DESTDIR?=@exec_prefix@
 ifneq (/usr,$(PREFIX))
-CPPFLAGS:=$(CPPFLAGS) -DCUSTOM_ROM_DIR=\"$(PREFIX)/share/craftos\"
+CPPFLAGS:=$(CPPFLAGS) -DCUSTOM_ROM_DIR=\"$(PREFIX)/share/craftos-tweaked\"
 endif
 SDIR=@srcdir@/src
 IDIR=@srcdir@/api
 ODIR=obj
-_OBJ=Computer.o configuration.o favicon.o font.o gif.o main.o plugin.o runtime.o speaker_sounds.o termsupport.o util.o \
+_OBJ=Computer.o configuration.o location.o favicon.o font.o gif.o main.o plugin.o runtime.o speaker_sounds.o termsupport.o util.o \
 	 apis_config.o apis_fs.o apis_fs_handle.o @HTTP_TARGET@ apis_http_rules.o apis_mounter.o apis_os.o apis_periphemu.o apis_peripheral.o apis_redstone.o apis_term.o \
 	 mem_cluster.o \
 	 peripheral_monitor.o peripheral_printer.o peripheral_computer.o peripheral_modem.o peripheral_drive.o peripheral_debugger.o \
@@ -148,15 +148,15 @@ rebuild: clean craftos-tweaked
 install: craftos-tweaked
 	echo " [CP]    $(DESTDIR)/craftos-tweaked"
 	cp craftos-tweaked $(DESTDIR)/craftos-tweaked
-	echo " [CP]    $(PREFIX)/share/craftos/roms"
-	mkdir -p $(PREFIX)/share/craftos
-	cp -R @srcdir@/roms $(PREFIX)/share/craftos/
+	echo " [CP]    $(PREFIX)/share/craftos-tweaked/roms"
+	mkdir -p $(PREFIX)/share/craftos-tweaked
+	cp -R @srcdir@/roms $(PREFIX)/share/craftos-tweaked/
 
 uninstall:
 	echo " [RM]    $(DESTDIR)/craftos-tweaked"
 	rm $(DESTDIR)/craftos-tweaked
-	echo " [RM]    $(PREFIX)/share/craftos/roms"
-	rm -rf $(PREFIX)/share/craftos/roms
+	echo " [RM]    $(PREFIX)/share/craftos-tweaked/roms"
+	rm -rf $(PREFIX)/share/craftos-tweaked/roms
 
 test: craftos-tweaked
 	./craftos-tweaked --headless --script $(shell pwd)/resources/CraftOSTest.lua -d "$(shell mktemp -d)"

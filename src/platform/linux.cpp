@@ -51,14 +51,14 @@ extern "C" {
 const char * rom_path = CUSTOM_ROM_DIR;
 path_t rom_path_expanded;
 #else
-path_t rom_path = "/usr/share/craftos";
+path_t rom_path = "/usr/share/craftos-tweaked";
 #endif
 #ifdef FS_ROOT
 const char * base_path = "";
 #else
-// TODO(slammingprogramming): data and ROM locations still use the upstream "CraftOS-PC"/"craftos" names so existing
-// saves keep working. They are to be changed to match CC: Tweaked, with a migration step (see TODO.md).
-const char * base_path = "$XDG_DATA_HOME/craftos-pc";
+// The per-user data folder. src/location.cpp decides whether it is used (or a folder next to the program, or a -d folder);
+// a CraftOS-PC 2 folder under the old name is found and offered there.
+const char * base_path = "$XDG_DATA_HOME/craftos-tweaked";
 #endif
 path_t base_path_expanded;
 
@@ -81,8 +81,8 @@ path_t getBasePath() {
     base_path_expanded = p.we_wordv[0];
     for (unsigned i = 1; i < p.we_wordc; i++) base_path_expanded += p.we_wordv[i];
     wordfree(&p);
-    if (base_path_expanded == "/craftos-pc") {
-        wordexp("$HOME/.local/share/craftos-pc", &p, 0);
+    if (base_path_expanded == "/craftos-tweaked") {
+        wordexp("$HOME/.local/share/craftos-tweaked", &p, 0);
         base_path_expanded = p.we_wordv[0];
         for (unsigned i = 1; i < p.we_wordc; i++) base_path_expanded += p.we_wordv[i];
         wordfree(&p);

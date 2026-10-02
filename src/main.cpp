@@ -23,6 +23,7 @@ static void* releaseNotesThread(void* data);
 #include <Computer.hpp>
 #include <configuration.hpp>
 #include <sys/stat.h>
+#include "location.hpp"
 #include "peripheral/drive.hpp"
 #include "peripheral/speaker.hpp"
 #include "platform.hpp"
@@ -571,6 +572,7 @@ static bool romPathExplicit = false;   // --rom/--assets-dir was given
 static std::string cliCCVersion;       // --cc-version was given
 static bool forceMigrate = false;
 static path_t customDataDir;
+static bool dataDirExplicit = false; // -d was given
 
 // Chooses which CC: Tweaked ROM this session uses: an explicit --rom folder, else roms/<ccVersion> from the usual
 // places (next to the executable first), else the old single-ROM location so existing installs keep working.
@@ -687,8 +689,8 @@ int parseArguments(const std::vector<std::string>& argv) {
         else if (arg == "--exec") script_file = "\x1b" + argv[++i];
         else if (arg == "--args") script_args = argv[++i];
         else if (arg == "--plugin") customPlugins.push_back(argv[++i]);
-        else if (arg == "--directory" || arg == "-d" || arg == "--data-dir") setBasePath(argv[++i]);
-        else if (arg.substr(0, 3) == "-d=") setBasePath(arg.substr(3));
+        else if (arg == "--directory" || arg == "-d" || arg == "--data-dir") {setBasePath(argv[++i]); dataDirExplicit = true;}
+        else if (arg.substr(0, 3) == "-d=") {setBasePath(arg.substr(3)); dataDirExplicit = true;}
         else if (arg == "--computers-dir" || arg == "-C") computerDir = argv[++i];
         else if (arg.substr(0, 3) == "-C=") computerDir = arg.substr(3);
         else if (arg == "--start-dir") customDataDir = argv[++i];
@@ -858,6 +860,7 @@ int main(int argc, char*argv[]) {
         selectedRenderer = 0;
     }
 #endif
+    resolveDataLocations(dataDirExplicit, romPathExplicit);
     if (computerDir.empty()) computerDir = getBasePath() / "computer";
     if (!customDataDir.empty()) customDataDirs[id] = customDataDir;
     mainThreadID = std::this_thread::get_id();

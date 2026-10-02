@@ -70,11 +70,22 @@ Install the `craftos-pc` package using your chosen AUR helper (e.g. `yay -S craf
 2. Open the file and tap "Install"
 3. Open CraftOS-PC from the app drawer or home screen
 
-### v2.2: Where are my files?
-CraftOS-PC v2.2 moves the save directory to be more appropriate for each platform. Your files are not gone; they're automatically moved over before launching if the old folder is still present. You can find the computer data files at these locations:
-* Windows: `%appdata%\CraftOS-PC` (`C:\Users\<user>\AppData\Roaming\CraftOS-PC`)
-* Mac: `~/Library/Application Support/CraftOS-PC`
-* Linux: `$XDG_DATA_HOME/craftos-pc` or `~/.local/share/craftos-pc`
+### Where are my files?
+CraftOS-Tweaked keeps computers, settings and crash logs in one **data folder**. CC: Tweaked keeps its computers in `computercraft/computer/<id>` inside a Minecraft world, so by default the data folder is a `computercraft` folder **next to the program**, which also makes the install portable: copy the folder and everything goes with it. The first time you start the program in a window (or with `--cli`) it asks whether to use that, or your user folder:
+* Windows: `%appdata%\CraftOS-Tweaked`
+* Mac: `~/Library/Application Support/CraftOS-Tweaked`
+* Linux: `$XDG_DATA_HOME/craftos-tweaked` or `~/.local/share/craftos-tweaked`
+
+If a CraftOS-PC 2 folder with computers in it exists (`%appdata%\CraftOS-PC`, `~/Library/Application Support/CraftOS-PC`, `~/.local/share/craftos-pc`) it is offered as a third choice, and kept in use when nobody can be asked (for example with `--headless`), so no computers are lost. If the program's own folder cannot be written (a system-wide install), your user folder is used.
+
+The choice is saved in **`craftos-tweaked.json`** next to the program (or `location.json` in your user folder when that is not possible) and can be edited by hand:
+```json
+{
+  "dataDirectory": "computercraft",
+  "romDirectory": "roms"
+}
+```
+Relative paths start in the folder of the file. `romDirectory` may be a folder that holds ROM folders such as `mc-1.20.x`. The command line wins over the file: `-d <folder>` sets the data folder and `--rom <folder>` the ROM folder for one run. The mobile and web builds keep their usual app-private folders.
 
 ## Choosing a CC: Tweaked version
 CraftOS-Tweaked emulates [CC: Tweaked](https://github.com/cc-tweaked/CC-Tweaked) and can run the ROM of several of its Minecraft versions. Release packages contain a `roms` folder next to the executable with one folder per version (currently `mc-1.20.x`, the default, and `mc-26.3`).
@@ -117,7 +128,7 @@ CraftOS-Tweaked emulates [CC: Tweaked](https://github.com/cc-tweaked/CC-Tweaked)
   * For MP3 support, libmpg123 is required
   * For FLAC support, libFLAC is required
   * For SF2 support, SDL_mixer must be built manually with fluidsynth support (or with the `fluidsynth` feature in vcpkg since July 9, 2021)
-* `--prefix=<path>` sets the install prefix; `make install` also copies the ROMs to `<path>/share/craftos/roms`
+* `--prefix=<path>` sets the install prefix; `make install` also copies the ROMs to `<path>/share/craftos-tweaked/roms`
 * Standalone builds (one ROM compiled into the executable) can be enabled with `--with-standalone-rom=<fs_standalone.cpp>`, where the file is made by `resources/packStandaloneROM.js` from one folder in `roms/` (CI does this for `roms/mc-1.20.x`).
 
 You can get all of these dependencies with:
@@ -145,6 +156,7 @@ Releases are tagged `vMAJOR.MINOR.PATCH` (for example `v0.1.0`); see [TODO.md](T
 #### Windows
 1. Download [Visual Studio 2019](https://visualstudio.microsoft.com/) if not already installed
 2. `git submodule update --init --recursive`
+   `tools/apply-lua-patches.sh` (the changes to the modified Lua that CC: Tweaked's behavior needs; see [patches/craftos2-lua](patches/craftos2-lua/README.md))
 3. Open `CraftOS-Tweaked.sln` with VS
 4. Build solution
 5. Copy the `roms` folder of this repository into the same directory as the new executable (ex. `x64\Release`)
@@ -160,6 +172,7 @@ The solution has a few different build configurations:
 1. Open a new Terminal window
 2. `cd` to the cloned repository
 3. `git submodule update --init --recursive`
+   `tools/apply-lua-patches.sh`
 4. `make -C craftos2-lua macosx`
 5. `./configure`
 6. `make macapp`
@@ -173,6 +186,7 @@ The solution has a few different build configurations:
 1. Open a new terminal
 2. `cd` to the cloned repository
 3. `git submodule update --init --recursive`
+   `tools/apply-lua-patches.sh`
 4. `make -C craftos2-lua linux`
 5. `./configure`
 6. `make`

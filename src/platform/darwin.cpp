@@ -42,11 +42,11 @@ extern "C" {
 const char * rom_path = CUSTOM_ROM_DIR;
 path_t rom_path_expanded;
 #else
-path_t rom_path = "/usr/local/share/craftos";
+path_t rom_path = "/usr/local/share/craftos-tweaked";
 #endif
-// TODO(slammingprogramming): data and ROM locations still use the upstream "CraftOS-PC"/"craftos" names so existing
-// saves keep working. They are to be changed to match CC: Tweaked, with a migration step (see TODO.md).
-const char * base_path = "$HOME/Library/Application\\ Support/CraftOS-PC";
+// The per-user data folder. src/location.cpp decides whether it is used (or a folder next to the program, or a -d folder);
+// a CraftOS-PC 2 folder under the old name is found and offered there.
+const char * base_path = "$HOME/Library/Application\\ Support/CraftOS-Tweaked";
 path_t base_path_expanded;
 
 void setBasePath(path_t path) {

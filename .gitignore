@@ -44,3 +44,5 @@ vcpkg_installed
 *.dylib
 *.so
 *.bundleroms/*/fs_standalone.cpp
+computercraft/
+craftos-tweaked.json

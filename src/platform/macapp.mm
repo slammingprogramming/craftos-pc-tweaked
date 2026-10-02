@@ -67,7 +67,7 @@ path_t getBasePath() {
                          appropriateForURL:[NSURL fileURLWithPath:@"/"] 
                          create:NO 
                          error:nil
-                        ] fileSystemRepresentation]) / "CraftOS-PC";
+                        ] fileSystemRepresentation]) / "CraftOS-Tweaked";
 }
 
 path_t getROMPath() {
