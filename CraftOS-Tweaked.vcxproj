@@ -581,6 +581,7 @@
     <ClCompile Include="src\apis\handles\fs_handle.cpp" />
     <ClCompile Include="src\apis\handles\http_handle.cpp" />
     <ClCompile Include="src\apis\http.cpp" />
+    <ClCompile Include="src\apis\http_rules.cpp" />
     <ClCompile Include="src\apis\mounter.cpp" />
     <ClCompile Include="src\apis\os.cpp" />
     <ClCompile Include="src\apis\periphemu.cpp" />
@@ -652,6 +653,7 @@
     <ClInclude Include="src\peripheral\monitor.hpp" />
     <ClInclude Include="src\peripheral\printer.hpp" />
     <ClInclude Include="src\peripheral\speaker.hpp" />
+    <ClInclude Include="src\peripheral\scripted.hpp" />
     <ClInclude Include="src\peripheral\tank.hpp" />
     <ClInclude Include="src\platform.hpp" />
     <ClInclude Include="src\platform\resource.h" />
@@ -734,6 +736,7 @@
       <MinimalRebuild Condition="'$(Configuration)|$(Platform)'=='ReleaseStandalone|ARM64'">
       </MinimalRebuild>
     </ClCompile>
+    <ClCompile Include="src\peripheral\scripted.cpp" />
     <ClCompile Include="src\peripheral\tank.cpp" />
     <ClCompile Include="src\platform.cpp" />
     <ClCompile Include="src\platform\darwin.cpp">

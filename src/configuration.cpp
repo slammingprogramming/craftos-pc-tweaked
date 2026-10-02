@@ -156,6 +156,7 @@ std::unordered_map<std::string, std::pair<int, int> > configSettings = {
     {"dropFilePath", {0, 0}},
     {"useDFPWM", {0, 0}},
     {"ccVersion", {2, 2}},
+    {"http_rules", {0, 3}},
 };
 
 const std::string hiddenOptions[] = {"customFontPath", "customFontScale", "customCharScale", "skipUpdate", "lastVersion", "pluginData", "http_proxy_server", "http_proxy_port", "cliControlKeyMode", "serverMode", "romReadOnly"};
@@ -239,7 +240,8 @@ void config_init() {
         true,
         false,
         false,
-        CRAFTOSTWEAKED_DEFAULT_CC_VERSION
+        CRAFTOSTWEAKED_DEFAULT_CC_VERSION,
+        {}
     };
     if (e) {
         configLoadError = true;
@@ -286,6 +288,12 @@ void config_init() {
             config.http_blacklist.clear();
             for (auto it = root["http_blacklist"].arrayBegin(); it != root["http_blacklist"].arrayEnd(); ++it)
                 config.http_blacklist.push_back(it->toString());
+        }
+        if (root.isMember("http_rules")) {
+            config.http_rules.clear();
+            httpRulesExplicit = true;
+            for (auto it = root["http_rules"].arrayBegin(); it != root["http_rules"].arrayEnd(); ++it)
+                config.http_rules.push_back(it->toString());
         }
         if (root.isMember("mounter_whitelist")) {
             config.mounter_whitelist.clear();
@@ -389,6 +397,7 @@ void config_save() {
     root["mount_mode"] = config.mount_mode;
     root["http_whitelist"] = config.http_whitelist;
     root["http_blacklist"] = config.http_blacklist;
+    if (httpRulesExplicit) root["http_rules"] = config.http_rules;
     root["mounter_whitelist"] = config.mounter_whitelist;
     root["mounter_blacklist"] = config.mounter_blacklist;
     root["mounter_no_ask"] = config.mounter_no_ask;

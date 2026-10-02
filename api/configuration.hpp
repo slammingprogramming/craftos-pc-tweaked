@@ -100,6 +100,10 @@ struct configuration {
     // CraftOS-Tweaked: the CC: Tweaked version to emulate, i.e. the name of a folder inside "roms" (for example
     // "mc-1.20.x"). New fields are only ever added at the end, so plugins built earlier keep working.
     std::string ccVersion;
+
+    // CraftOS-Tweaked: CC: Tweaked's HTTP address rules, in order, one per entry (see src/apis/http_rules.hpp). When empty
+    // the defaults for the active ROM are used, or http_whitelist/http_blacklist if they were changed.
+    std::vector<std::string> http_rules;
 };
 
 // A smaller structure that holds the configuration for a single computer.

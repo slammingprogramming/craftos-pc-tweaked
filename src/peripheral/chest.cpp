@@ -54,10 +54,10 @@ int chest::setItem(lua_State *L) {
     int slot = luaL_checknumber(L, 1);
     luaL_checktype(L, 2, LUA_TTABLE);
     lua_getfield(L, 2, "name");
-    if (!lua_isstring(L, -1)) luaL_error(L, "bad field 'name' (expected string, got %s)", lua_typename(L, lua_type(L, -1)));
+    if (!lua_isstring(L, -1)) luaL_error(L, "bad field 'name' (string expected, got %s)", argTypeName(L, -1));
     lua_pop(L, 1);
     lua_getfield(L, 2, "count");
-    if (!lua_isnumber(L, -1)) luaL_error(L, "bad field 'count' (expected number, got %s)", lua_typename(L, lua_type(L, -1)));
+    if (!lua_isnumber(L, -1)) luaL_error(L, "bad field 'count' (number expected, got %s)", argTypeName(L, -1));
     int count = lua_tointeger(L, -1);
     lua_settop(L, 2);
     lua_pushinteger(L, addItems(L, slot, count));

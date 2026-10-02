@@ -28,7 +28,7 @@ static int os_getComputerLabel(lua_State *L) {
 static int os_setComputerLabel(lua_State *L) {
     lastCFunction = __func__;
     Computer * comp = get_comp(L);
-    comp->config->label = tostring(L, 1, "");
+    comp->config->label = normaliseLabel(tostring(L, 1, ""));
     if (comp->term != NULL) comp->term->setLabel(comp->config->label.empty() ? "CraftOS Terminal: " + std::string(comp->isDebugger ? "Debugger" : "Computer") + " " + std::to_string(comp->id) : "CraftOS Terminal: " + asciify(comp->config->label));
     return 0;
 }

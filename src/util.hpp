@@ -185,6 +185,17 @@ struct lua_State {
     void* base_ci;  /* CallInfo for first level (C calling Lua) */
 };
 
+// A colour argument of the terminal methods like CC: Tweaked's TermMethods.parseColour: the highest set bit of a number
+// from 1 to 65535 (colours.red, ...); anything else is "Colour out of range"
+inline int parseColour(lua_State *L, int arg) {
+    int colour = (int)luaL_checknumber(L, arg);
+    if (colour <= 0) luaL_error(L, "Colour out of range");
+    int bit = 0;
+    while (colour > 0) {colour >>= 1; bit++;}
+    if (bit - 1 > 15) luaL_error(L, "Colour out of range");
+    return bit - 1;
+}
+
 inline int log2i(int num) {
     if (num <= 0) return 0;
     int retval;
@@ -205,6 +216,10 @@ inline std::string asciify(std::string str) {
     return retval;
 }
 
+// The type name in "bad argument" errors: CC: Tweaked says nil where Lua says "no value"
+static inline const char * argTypeName(lua_State *L, int idx) {return lua_type(L, idx) == LUA_TNONE ? "nil" : luaL_typename(L, idx);}
+extern std::string coerceToString(lua_State *L, int idx);   // IArguments.getStringCoerced of CC: Tweaked: any value as text (nil is "nil"; numbers print like Java)
+extern std::string normaliseLabel(const std::string& label); // a computer or disk label as CC: Tweaked stores it: at most 32 characters, others replaced by ?
 extern struct configuration config;
 extern std::unordered_map<std::string, std::pair<int, int> > configSettings;
 extern std::unordered_map<std::string, std::tuple<int, std::function<int(const std::string&, void*)>, void*> > userConfig;
@@ -275,6 +290,7 @@ extern struct computer_configuration getComputerConfig(int id);
 extern void setComputerConfig(int id, const computer_configuration& cfg);
 extern void config_init();
 extern void config_save();
+extern bool httpRulesExplicit;                                              // http_rules was set by the user
 extern bool standardsModeExplicit;                                          // standardsMode was set by the user (config file, -o or config.set), so it is not chosen by the ROM
 extern void applyDefaultStandardsMode();                                    // standardsMode defaults to on for CC: Tweaked ROMs and off for others
 extern void xcopy(lua_State *from, lua_State *to, int n);

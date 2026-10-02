@@ -24,27 +24,32 @@ static std::function<double(const Computer *, const Computer *)> distanceCallbac
     distanceCallback = func;
 }
 
-// todo: probably check port range
+// CC: Tweaked's ModemPeripheral.parseChannel: the argument must be a number from 0 to 65535 (fractions are cut off)
+static uint16_t parseChannel(lua_State *L, int arg) {
+    const lua_Number n = luaL_checknumber(L, arg);
+    if (n != n || n < 0 || n >= 65536) luaL_error(L, "Expected number in range 0-65535");
+    return (uint16_t)n;
+}
 
 int modem::isOpen(lua_State *L) {
     lastCFunction = __func__;
-    if (luaL_checkinteger(L, 1) < 0 || lua_tointeger(L, 1) > 65535) luaL_error(L, "bad argument #1 (channel out of range)");
-    lua_pushboolean(L, openPorts.find((uint16_t)lua_tointeger(L, 1)) != openPorts.end());
+    lua_pushboolean(L, openPorts.find(parseChannel(L, 1)) != openPorts.end());
     return 1;
 }
 
 int modem::open(lua_State *L) {
     lastCFunction = __func__;
-    if (luaL_checkinteger(L, 1) < 0 || lua_tointeger(L, 1) > 65535) luaL_error(L, "bad argument #1 (channel out of range)"); // argument error > too many open channels
-    if (openPorts.size() >= (size_t)config.maxOpenPorts) luaL_error(L, "Too many open channels");
-    openPorts.insert((uint16_t)lua_tointeger(L, 1));
+    const uint16_t port = parseChannel(L, 1);
+    if (openPorts.find(port) == openPorts.end()) { // opening an open channel again is fine
+        if (openPorts.size() >= (size_t)config.maxOpenPorts) luaL_error(L, "Too many open channels");
+        openPorts.insert(port);
+    }
     return 0;
 }
 
 int modem::close(lua_State *L) {
     lastCFunction = __func__;
-    if (luaL_checkinteger(L, 1) < 0 || lua_tointeger(L, 1) > 65535) luaL_error(L, "bad argument #1 (channel out of range)");
-    openPorts.erase((uint16_t)lua_tointeger(L, 1));
+    openPorts.erase(parseChannel(L, 1));
     return 0;
 }
 
@@ -56,20 +61,19 @@ int modem::closeAll(lua_State *L) {
 
 int modem::transmit(lua_State *L) {
     lastCFunction = __func__;
-    luaL_checkinteger(L, 2);
-    luaL_checkany(L, 3);
-    if (luaL_checkinteger(L, 1) < 0 || lua_tointeger(L, 1) > 65535) luaL_error(L, "bad argument #1 (channel out of range)");
-    const uint16_t port = (uint16_t)lua_tointeger(L, 1);
+    lua_settop(L, 3);
+    const uint16_t port = parseChannel(L, 1);
+    const uint16_t replyPort = parseChannel(L, 2);
     for (modem* m : network[netID]) if (m != this && m->openPorts.find(port) != m->openPorts.end()) {
-        lua_pushvalue(L, 3);
-        m->receive(L, port, (uint16_t)luaL_checkinteger(L, 2), this);
+        lua_pushvalue(L, 3); // a missing payload is nil, as in CC: Tweaked
+        m->receive(L, port, replyPort, this);
     }
     return 0;
 }
 
 int modem::isWireless(lua_State *L) {
     lastCFunction = __func__;
-    lua_pushboolean(L, false);
+    lua_pushboolean(L, true); // transmit() reaches every modem, like a wireless modem does
     return 1;
 }
 
@@ -217,7 +221,7 @@ int modem::call(lua_State *L, const char * method) {
     else if (m == "callRemote") return callRemote(L);
     else if (m == "hasTypeRemote") return hasTypeRemote(L);
     else if (m == "getNameLocal") return getNameLocal(L);
-    else return luaL_error(L, "No such method");
+    else return luaL_error(L, "No such method %s", method);
 }
 
 static luaL_Reg modem_reg[] = {

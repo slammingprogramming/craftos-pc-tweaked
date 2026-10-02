@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (c) 2026 slammingprogramming
 #
-# Runs CC: Tweaked's test suite against the emulator, one spec file at a time (so that a hanging or crashing spec only
+# Runs CC: Tweaked's test suite (and CraftOS-Tweaked's own specs from tests/specs, listed as emu/...) against the emulator, one spec file at a time (so that a hanging or crashing spec only
 # loses itself) and prints a summary table.
 #
 #   tools/cct/run-specs.sh <emulator> <cc-version id> <CC-Tweaked checkout> [report file]
@@ -20,8 +20,15 @@ run_one() {
     spec="$1"
     name="$(echo "$spec" | tr '/' '_')"
     mkdir -p "$WORK/$name"
-    timeout -k 5 "$SPEC_TIMEOUT" "$EMU" --headless --cc-version "$VERSION" -d "$WORK/$name" \
-        --mount-ro test-rom="$TESTROM" --script "$HERE/resources/CCT-Test-Bootstrap.lua" --args "/test-rom/$spec" \
+    case "$spec" in
+        emu/*) args="/emu-spec/${spec#emu/} /emu-spec" ;;          # CraftOS-Tweaked's own specs, tests/specs
+        *) args="/test-rom/$spec" ;;
+    esac
+    # monitors need a window: those specs run on a virtual display when one is available (they are pending otherwise)
+    launcher=(); renderer=(--headless)
+    case "$spec" in emu/monitor*) if command -v xvfb-run >/dev/null 2>&1; then launcher=(xvfb-run -a); renderer=(--software-sdl); fi ;; esac
+    timeout -k 5 "$SPEC_TIMEOUT" "${launcher[@]}" "$EMU" "${renderer[@]}" --cc-version "$VERSION" -d "$WORK/$name" \
+        --mount-ro test-rom="$TESTROM" --mount-ro emu-spec="$HERE/tests/specs" --script "$HERE/resources/CCT-Test-Bootstrap.lua" --args "$args" \
         > "$WORK/$name/stdout.txt" 2>&1
     code=$?
     log="$WORK/$name/computer/0/test-log.txt"
@@ -35,7 +42,7 @@ run_one() {
 while read -r spec; do
     while [ "$(jobs -r | wc -l)" -ge "$JOBS" ]; do sleep 0.2; done
     run_one "$spec" >> "$WORK/results.txt" &
-done < <(cd "$TESTROM" && find spec -name '*_spec.lua' | sort)
+done < <({ cd "$TESTROM" && find spec -name '*_spec.lua'; cd "$HERE/tests/specs" && find . -name '*_spec.lua' | sed 's|^\./|emu/|'; } | sort)
 wait
 
 sort "$WORK/results.txt" > "$WORK/sorted.txt"

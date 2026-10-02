@@ -22,7 +22,7 @@ static std::vector<std::string> sides = {
 
 static const char * _typename(lua_State *L, int num) {
     if (luaL_getmetafield(L, num, "__name")) return lua_tostring(L, -1);
-    else return luaL_typename(L, num);
+    else return argTypeName(L, num);
 }
 
 static int rs_getSides(lua_State *L) {

@@ -46,6 +46,7 @@ int computer::reboot(lua_State *L) {
 int computer::getLabel(lua_State *L) {
     lastCFunction = __func__;
     if (freedComputers.find(comp) != freedComputers.end()) return 0;
+    if (comp->config->label.empty()) return 0; // no label is nil, like os.getComputerLabel
     lua_pushlstring(L, comp->config->label.c_str(), comp->config->label.length());
     return 1;
 }
@@ -86,7 +87,7 @@ int computer::call(lua_State *L, const char * method) {
     else if (m == "getID") return getID(L);
     else if (m == "isOn") return isOn(L);
     else if (m == "getLabel") return getLabel(L);
-    else return luaL_error(L, "No such method");
+    else return luaL_error(L, "No such method %s", method);
 }
 
 static luaL_Reg computer_reg[] = {

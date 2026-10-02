@@ -163,6 +163,9 @@
     <ClInclude Include="src\peripheral\speaker.hpp">
       <Filter>Header Files\peripheral</Filter>
     </ClInclude>
+    <ClInclude Include="src\peripheral\scripted.hpp">
+      <Filter>Header Files\peripheral</Filter>
+    </ClInclude>
     <ClInclude Include="src\peripheral\tank.hpp">
       <Filter>Header Files\peripheral</Filter>
     </ClInclude>
@@ -294,6 +297,9 @@
     <ClCompile Include="src\peripheral\speaker_sounds.cpp">
       <Filter>Source Files\peripheral</Filter>
     </ClCompile>
+    <ClCompile Include="src\peripheral\scripted.cpp">
+      <Filter>Source Files\peripheral</Filter>
+    </ClCompile>
     <ClCompile Include="src\peripheral\tank.cpp">
       <Filter>Source Files\peripheral</Filter>
     </ClCompile>
@@ -325,6 +331,9 @@
       <Filter>Source Files\apis</Filter>
     </ClCompile>
     <ClCompile Include="src\apis\http.cpp">
+      <Filter>Source Files\apis</Filter>
+    </ClCompile>
+    <ClCompile Include="src\apis\http_rules.cpp">
       <Filter>Source Files\apis</Filter>
     </ClCompile>
     <ClCompile Include="src\apis\os.cpp">

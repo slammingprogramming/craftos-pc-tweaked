@@ -29,6 +29,8 @@
 #include <Poco/Net/WebSocket.h>
 #include <Poco/Net/NetException.h>
 #include <Poco/Net/HTTPSClientSession.h>
+#include <Poco/Net/SecureStreamSocket.h>
+#include <Poco/Net/StreamSocket.h>
 #include <Poco/Net/HTTPRequestHandler.h>
 #include <Poco/Net/HTTPRequestHandlerFactory.h>
 #include <Poco/Net/HTTPServerRequest.h>
@@ -38,6 +40,7 @@
 #include "../runtime.hpp"
 #include "../util.hpp"
 #include "handles/http_handle.hpp"
+#include "http_rules.hpp"
 
 #ifdef __ANDROID__
 extern "C" {extern int Android_JNI_SetupThread(void);}
@@ -201,6 +204,42 @@ static std::string urlEncode(const std::string& tmppath) {
     return path;
 }
 
+
+// Opens a connection to the address that the rules were checked against, so that a host name that resolves differently a
+// second time (DNS rebinding) cannot reach a place the rules forbid. Throws a Poco exception if it cannot connect.
+static HTTPClientSession * makeHTTPSession(const Poco::URI& uri, const Poco::Net::SocketAddress& target, const HTTPOptions& options, double timeoutSeconds) {
+    const bool secure = uri.getScheme() == "https" || uri.getScheme() == "wss";
+    Context::Ptr context;
+    if (secure) {
+        context = new Context(Context::CLIENT_USE, "", Context::VERIFY_RELAXED, 9, true, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+        addSystemCertificates(context);
+#if POCO_VERSION >= 0x010A0000
+        context->disableProtocols(Context::PROTO_TLSV1_3); // Some sites break under TLS 1.3 - disable it to maintain compatibility until fixed (pocoproject/poco#3395)
+#endif
+    }
+    if (options.useProxy) { // the proxy looks the host up itself
+        HTTPClientSession * session = secure ? new HTTPSClientSession(uri.getHost(), uri.getPort(), context) : new HTTPClientSession(uri.getHost(), uri.getPort());
+        session->setProxy(config.http_proxy_server, config.http_proxy_port);
+        return session;
+    }
+    const Poco::Timespan timeout(timeoutSeconds > 0 ? (Poco::Timespan::TimeDiff)(timeoutSeconds * 1000000) : (Poco::Timespan::TimeDiff)30 * 1000000);
+    if (secure) {
+        SecureStreamSocket socket(context);
+        socket.setPeerHostName(uri.getHost()); // for the certificate check and SNI
+        socket.connect(target, timeout);
+        return new HTTPSClientSession(socket);
+    }
+    StreamSocket socket;
+    socket.connect(target, timeout);
+    return new HTTPClientSession(socket);
+}
+
+static std::string describeConnectionError(const Poco::Exception& e) {
+    if (dynamic_cast<const Poco::TimeoutException*>(&e)) return "Timed out";
+    if (dynamic_cast<const Poco::Net::NetException*>(&e) || dynamic_cast<const Poco::IOException*>(&e)) return "Could not connect";
+    return e.displayText();
+}
+
 static void downloadThread(void* arg) {
 #ifdef __APPLE__
     pthread_setname_np("HTTP Download Thread");
@@ -215,7 +254,7 @@ static void downloadThread(void* arg) {
     std::string path;
     param->comp->requests_open++;
 downloadThread_entry:
-    bool isLocalhost = false;
+    HTTPOptions options = {0, 0, 0, false};
     {
         if (param->url.find(':') == std::string::npos) status = "Must specify http or https";
         else if (param->url.find("://") == std::string::npos) status = "URL malformed";
@@ -229,40 +268,20 @@ downloadThread_entry:
             size_t pos = param->url.find('/', param->url.find(uri.getHost()));
             size_t hash = pos != std::string::npos ? param->url.find('#', pos) : std::string::npos;
             path = urlEncode(pos != std::string::npos ? param->url.substr(pos, hash - pos) : "/");
-            if (uri.getHost() == "localhost") {isLocalhost = true; uri.setHost("127.0.0.1");}
-            bool found = false;
-            if (uri.getHost().find('%') != std::string::npos) status = "Scoped address not permitted"; // like CC: Tweaked
-            else for (const std::string& wclass : config.http_whitelist) {
-                if (matchIPClass(uri.getHost(), wclass)) {
-                    found = true;
-                    for (const std::string& bclass : config.http_blacklist) {
-                        if (matchIPClass(uri.getHost(), bclass)) {
-                            found = false;
-                            break;
-                        }
+            if (uri.getScheme() != "http" && uri.getScheme() != "https") status = "Invalid protocol '" + uri.getScheme() + "'";
+            else {
+                Poco::Net::SocketAddress target;
+                // looks the host up and applies the rules, like CC: Tweaked (no matter how it is written, e.g. localhost)
+                status = resolveHTTPTarget(uri.getHost(), uri.getPort(), uri.getScheme() == "https", target, options);
+                if (status.empty() && options.useProxy && config.http_proxy_server.empty()) status = "Proxy host not configured";
+                if (status.empty()) {
+                    try {
+                        session = makeHTTPSession(uri, target, options, param->timeout > 0 ? param->timeout : config.http_timeout / 1000.0);
+                    } catch (Poco::Exception &e) {
+                        status = describeConnectionError(e);
                     }
-                    if (!found) break;
                 }
             }
-            if (!found) {if (status.empty()) status = "Domain not permitted";}
-            else if (uri.getScheme() == "http") {
-                session = new HTTPClientSession(uri.getHost(), uri.getPort());
-            } else if (uri.getScheme() == "https") {
-                try {
-                    Context::Ptr context = new Context(Context::CLIENT_USE, "", Context::VERIFY_RELAXED, 9, true, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
-                    addSystemCertificates(context);
-#if POCO_VERSION >= 0x010A0000
-                    context->disableProtocols(Context::PROTO_TLSV1_3); // Some sites break under TLS 1.3 - disable it to maintain compatibility until fixed (pocoproject/poco#3395)
-#endif
-                    session = new HTTPSClientSession(uri.getHost(), uri.getPort(), context);
-                } catch (Poco::Exception &e) {
-                    http_handle_t * err = new http_handle_t(NULL);
-                    err->url = param->url;
-                    err->failureReason = e.message();
-                    queueEvent(param->comp, http_failure, err);
-                    goto downloadThread_finish;
-                }
-            } else status = "Invalid protocol '" + uri.getScheme() + "'";
         }
         if (!status.empty()) {
             http_handle_t * err = new http_handle_t(NULL);
@@ -272,21 +291,20 @@ downloadThread_entry:
             goto downloadThread_finish;
         }
 
-        if (!config.http_proxy_server.empty()) session->setProxy(config.http_proxy_server, config.http_proxy_port);
         HTTPRequest request(!param->method.empty() ? param->method : (!param->postData.empty() ? "POST" : "GET"), path, HTTPMessage::HTTP_1_1);
         HTTPResponse * response = new HTTPResponse();
         if (param->timeout > 0) session->setTimeout(Poco::Timespan(param->timeout * 1000000));
         else if (config.http_timeout > 0) session->setTimeout(Poco::Timespan(config.http_timeout * 1000));
         size_t requestSize = param->postData.size();
         for (const auto& h : param->headers) {request.add(h.first, h.second); requestSize += h.first.size() + h.second.size() + 1;}
-        if (isLocalhost) request.add("Host", "localhost:" + std::to_string(uri.getPort()));
+        if (!request.has("Host")) request.setHost(uri.getHost(), uri.getPort());
         if (!request.has("User-Agent")) request.add("User-Agent", std::string("computercraft/") + ccVersionString() + " CraftOS-Tweaked/" CRAFTOSPC_VERSION);
         if (!request.has("Accept-Charset")) request.add("Accept-Charset", "UTF-8");
         if (!param->postData.empty()) {
             if (request.getContentLength() == HTTPRequest::UNKNOWN_CONTENT_LENGTH) request.setContentLength(param->postData.size());
             if (request.getContentType() == HTTPRequest::UNKNOWN_CONTENT_TYPE) request.setContentType("application/x-www-form-urlencoded; charset=utf-8");
         }
-        if (config.http_max_upload > 0 && requestSize > (unsigned)config.http_max_upload) {
+        if (options.maxUpload >= 0 && requestSize > (unsigned long long)options.maxUpload) {
             http_handle_t * err = new http_handle_t(NULL);
             err->url = param->url;
             err->failureReason = "Request body is too large";
@@ -331,10 +349,24 @@ downloadThread_entry:
                 // Fix seeking by reading the entire data into a stringstream
                 std::istream& instream = session->receiveResponse(*response);
                 std::stringstream * ss = new std::stringstream;
+                long long total = 0;
+                bool tooLarge = false;
                 while (!instream.eof()) {
                     char buf[4096];
                     instream.read(buf, 4096);
+                    total += instream.gcount();
+                    if (options.maxDownload >= 0 && total > options.maxDownload) {tooLarge = true; break;} // chunked responses have no length to check
                     ss->write(buf, instream.gcount());
+                }
+                if (tooLarge) {
+                    delete ss;
+                    http_handle_t * err = new http_handle_t(NULL);
+                    err->url = param->url;
+                    err->failureReason = "Response is too large";
+                    queueEvent(param->comp, http_failure, err);
+                    delete response;
+                    delete session;
+                    goto downloadThread_finish;
                 }
                 handle = new http_handle_t(ss);
             } else handle = new http_handle_t(&session->receiveResponse(*response));
@@ -356,7 +388,7 @@ downloadThread_entry:
             delete session;
             goto downloadThread_finish;
         }
-        if (config.http_max_download > 0 && response->hasContentLength() && response->getContentLength() > config.http_max_download) {
+        if (options.maxDownload >= 0 && response->hasContentLength() && (long long)response->getContentLength() > options.maxDownload) {
             http_handle_t * err = new http_handle_t(NULL);
             err->url = param->url;
             err->failureReason = "Response is too large";
@@ -458,21 +490,10 @@ static void* checkThread(void* arg) {
             status = "URL malformed";
         }
         if (status.empty()) {
-            bool found = false;
-            if (uri.getHost().find('%') != std::string::npos) status = "Scoped address not permitted"; // like CC: Tweaked
-            else for (const std::string& wclass : config.http_whitelist) {
-                if (matchIPClass(uri.getHost(), wclass)) {
-                    found = true;
-                    for (const std::string& bclass : config.http_blacklist) {
-                        if (matchIPClass(uri.getHost(), bclass)) {
-                            found = false;
-                            break;
-                        }
-                    }
-                    if (!found) break;
-                }
-            }
-            if (status.empty() && !found) status = "Domain not permitted";
+            Poco::Net::SocketAddress target;
+            HTTPOptions options;
+            status = resolveHTTPTarget(uri.getHost(), uri.getPort(), uri.getScheme() == "https", target, options);
+            if (status.empty() && options.useProxy && config.http_proxy_server.empty()) status = "Proxy host not configured";
         }
     }
     http_check_t * res = new http_check_t;
@@ -489,7 +510,7 @@ static int http_request(lua_State *L) {
         lua_pushboolean(L, false);
         return 1;
     }
-    if (!lua_isstring(L, 1) && !lua_istable(L, 1)) luaL_error(L, "bad argument #1 (expected string or table, got %s)", lua_typename(L, lua_type(L, 1)));
+    if (!lua_isstring(L, 1) && !lua_istable(L, 1)) luaL_error(L, "bad argument #1 (string or table expected, got %s)", argTypeName(L, 1));
     http_param_t * param = new http_param_t;
     param->comp = get_comp(L);
     if (lua_istable(L, 1)) {
@@ -772,6 +793,7 @@ struct ws_handle {
     uint16_t port;
     void * clientID = NULL;
     ws_handle ** ud = NULL;
+    int maxMessage = 0; // 0 = use the general setting
 };
 
 struct websocket_failure_data {
@@ -839,10 +861,11 @@ static int websocket_close(lua_State *L) {
 
 static int websocket_send(lua_State *L) {
     lastCFunction = __func__;
-    std::string str = checkstring(L, 1);
-    if (config.http_max_websocket_message > 0 && str.size() > (unsigned)config.http_max_websocket_message) luaL_error(L, "Message is too large");
+    std::string str = coerceToString(L, 1); // like CC: Tweaked's Coerced<ByteBuffer>, any value can be sent
     ws_handle * ws = *(ws_handle**)lua_touserdata(L, lua_upvalueindex(1));
     if (ws == NULL) return luaL_error(L, "attempt to use a closed file");
+    const int maxMessage = ws->maxMessage > 0 ? ws->maxMessage : config.http_max_websocket_message;
+    if (maxMessage > 0 && str.size() > (unsigned)maxMessage) luaL_error(L, "Message is too large");
     std::lock_guard<std::mutex> lock(ws->lock);
     if (ws->ws == NULL) return luaL_error(L, "attempt to use a closed file");
     ws->ws->sendFrame(str.c_str(), str.size(), (int)WebSocket::FRAME_FLAG_FIN | (int)(lua_toboolean(L, 2) ? WebSocket::FRAME_BINARY : WebSocket::FRAME_TEXT));
@@ -1134,41 +1157,29 @@ static void websocket_client_thread(Computer *comp, const std::string& str, cons
         queueEvent(comp, websocket_failure, data);
         return;
     }
-    if (uri.getHost() == "localhost") uri.setHost("127.0.0.1");
-    bool found = false;
-    const bool scoped = uri.getHost().find('%') != std::string::npos; // like CC: Tweaked, scoped addresses are refused
-    if (!scoped) for (const std::string& wclass : config.http_whitelist) {
-        if (matchIPClass(uri.getHost(), wclass)) {
-            found = true;
-            for (const std::string& bclass : config.http_blacklist) {
-                if (matchIPClass(uri.getHost(), bclass)) {
-                    found = false;
-                    break;
-                }
-            }
-            if (!found) break;
-        }
-    }
-    if (!found) {
-        websocket_failure_data * data = new websocket_failure_data;
-        data->url = str;
-        data->reason = scoped ? "Scoped address not permitted" : "Domain not permitted";
-        queueEvent(comp, websocket_failure, data);
-        return;
-    }
-    HTTPClientSession * cs;
-    if (uri.getScheme() == "ws") cs = new HTTPClientSession(uri.getHost(), uri.getPort());
-    else if (uri.getScheme() == "wss") {
-        Context::Ptr ctx = new Context(Context::CLIENT_USE, "", Context::VERIFY_RELAXED, 9, true, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
-        addSystemCertificates(ctx);
-#if POCO_VERSION >= 0x010A0000
-        ctx->disableProtocols(Context::PROTO_TLSV1_3);
-#endif
-        cs = new HTTPSClientSession(uri.getHost(), uri.getPort(), ctx);
-    } else {
+    if (uri.getScheme() != "ws" && uri.getScheme() != "wss") {
         websocket_failure_data * data = new websocket_failure_data;
         data->url = str;
         data->reason = "Invalid scheme '" + uri.getScheme() + "'";
+        queueEvent(comp, websocket_failure, data);
+        return;
+    }
+    Poco::Net::SocketAddress target;
+    HTTPOptions options = {0, 0, 0, false};
+    std::string failure = resolveHTTPTarget(uri.getHost(), uri.getPort(), uri.getScheme() == "wss", target, options);
+    if (failure.empty() && options.useProxy && config.http_proxy_server.empty()) failure = "Proxy host not configured";
+    HTTPClientSession * cs = NULL;
+    if (failure.empty()) {
+        try {
+            cs = makeHTTPSession(uri, target, options, timeout);
+        } catch (Poco::Exception &e) {
+            failure = describeConnectionError(e);
+        }
+    }
+    if (!failure.empty()) {
+        websocket_failure_data * data = new websocket_failure_data;
+        data->url = str;
+        data->reason = failure;
         queueEvent(comp, websocket_failure, data);
         return;
     }
@@ -1178,9 +1189,9 @@ static void websocket_client_thread(Computer *comp, const std::string& str, cons
     size_t pos = str.find('/', str.find(uri.getHost()));
     size_t hash = pos != std::string::npos ? str.find('#', pos) : std::string::npos;
     std::string path = urlEncode(pos != std::string::npos ? str.substr(pos, hash - pos) : "/");
-    if (!config.http_proxy_server.empty()) cs->setProxy(config.http_proxy_server, config.http_proxy_port);
     HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
     for (std::pair<std::string, std::string> h : headers) request.set(h.first, h.second);
+    if (!request.has("Host")) request.setHost(uri.getHost(), uri.getPort());
     if (!request.has("User-Agent")) request.add("User-Agent", std::string("computercraft/") + ccVersionString() + " CraftOS-Tweaked/" CRAFTOSPC_VERSION);
     if (!request.has("Accept-Charset")) request.add("Accept-Charset", "UTF-8");
     HTTPResponse response;
@@ -1203,24 +1214,25 @@ static void websocket_client_thread(Computer *comp, const std::string& str, cons
     //if (config.http_timeout > 0) ws->setReceiveTimeout(Poco::Timespan(config.http_timeout * 1000));
     ws->setReceiveTimeout(Poco::Timespan(1, 0));
 #if POCO_VERSION >= 0x01090100
-    if (config.http_max_websocket_message > 0) ws->setMaxPayloadSize(config.http_max_websocket_message);
+    if (options.websocketMessage > 0) ws->setMaxPayloadSize(options.websocketMessage);
 #endif
     ws_handle wsh_orig;
     ws_handle * wsh = &wsh_orig;
     wsh->isServer = false;
     wsh->url = str;
     wsh->ws = ws;
+    wsh->maxMessage = options.websocketMessage;
     {
         std::lock_guard<std::mutex> lock(comp->openWebsocketsMutex);
         comp->openWebsockets.push_back(&wsh);
     }
     queueEvent(comp, websocket_success, &wsh);
-    char * buf = new char[config.http_max_websocket_message];
+    char * buf = new char[options.websocketMessage];
     while (wsh->ws) {
         int flags = 0;
         int res;
         try {
-            res = ws->receiveFrame(buf, config.http_max_websocket_message, flags);
+            res = ws->receiveFrame(buf, options.websocketMessage, flags);
             if (res < 0 || (res == 0 && flags == 0)) {
                 wsh->ws = NULL;
                 websocket_closed_data * d = new websocket_closed_data;
@@ -1295,11 +1307,11 @@ static int http_websocket(lua_State *L) {
         if (config.http_max_websockets > 0 && comp->openWebsockets.size() >= (unsigned)config.http_max_websockets) luaL_error(L, "Too many websockets already open");
         std::unordered_map<std::string, std::string> headers;
         lua_getfield(L, 1, "url");
-        if (!lua_isstring(L, -1)) luaL_error(L, "bad field 'url' (expected string, got %s)", lua_typename(L, lua_type(L, -1)));
+        if (!lua_isstring(L, -1)) luaL_error(L, "bad field 'url' (string expected, got %s)", argTypeName(L, -1));
         std::string url = tostring(L, -1);
         lua_pop(L, 1);
         lua_getfield(L, 1, "headers");
-        if (!lua_isnil(L, -1) && !lua_istable(L, -1)) luaL_error(L, "bad field 'headers' (expected table, got %s)", lua_typename(L, lua_type(L, -1)));
+        if (!lua_isnil(L, -1) && !lua_istable(L, -1)) luaL_error(L, "bad field 'headers' (table expected, got %s)", argTypeName(L, -1));
         if (lua_istable(L, -1)) {
             lua_pushnil(L);
             for (int i = 0; lua_next(L, -2); i++) {
@@ -1311,7 +1323,7 @@ static int http_websocket(lua_State *L) {
         }
         lua_pop(L, 1);
         lua_getfield(L, 1, "timeout");
-        if (!lua_isnil(L, -1) && !lua_isnumber(L, -1)) luaL_error(L, "bad field 'timeout' (expected number, got %s)", lua_typename(L, lua_type(L, -1)));
+        if (!lua_isnil(L, -1) && !lua_isnumber(L, -1)) luaL_error(L, "bad field 'timeout' (number expected, got %s)", argTypeName(L, -1));
         double timeout = luaL_optnumber(L, -1, config.http_timeout / 1000.0);
         lua_pop(L, 1);
         std::thread th(websocket_client_thread, comp, url, headers, timeout);
@@ -1336,7 +1348,7 @@ static int http_websocket(lua_State *L) {
         std::thread th(websocket_client_thread, comp, url, headers, config.http_timeout / 1000.0);
         setThreadName(th, "WebSocket Client Thread");
         th.detach();
-    } else luaL_error(L, (config.serverMode || config.vanilla) ? "bad argument #1 (expected string or table, got %s)" : "bad argument #1 (expected string, table, number, or nil, got %s)", lua_typename(L, lua_type(L, 1)));
+    } else luaL_error(L, (config.serverMode || config.vanilla) ? "bad argument #1 (string or table expected, got %s)" : "bad argument #1 (expected string, table, number, or nil, got %s)", argTypeName(L, 1));
     lua_pushboolean(L, true);
     return 1;
 }
@@ -1464,7 +1476,7 @@ static int http_websocketServer(lua_State *L) {
             lua_pop(L, 2);
         }
         lua_pop(L, 1);
-    } else if (!lua_isnoneornil(L, 2)) luaL_error(L, "bad argument #2 (expected table, got %s)", lua_typename(L, lua_type(L, 2)));
+    } else if (!lua_isnoneornil(L, 2)) luaL_error(L, "bad argument #2 (table expected, got %s)", argTypeName(L, 2));
     websocket_server::Factory * f = new websocket_server::Factory(comp, headers);
     try {f->srv = new HTTPServer(f, port);}
     catch (Poco::Exception& e) {

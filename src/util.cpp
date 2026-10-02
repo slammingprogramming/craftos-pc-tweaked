@@ -9,7 +9,10 @@
  * Originally released under the MIT License; see the LICENSE file.
  */
 
+#include <algorithm>
 #include <array>
+#include <cmath>
+#include <cstdint>
 #include <atomic>
 #include <cstring>
 #include <sstream>
@@ -470,10 +473,70 @@ static const std::vector<std::pair<IPBytes, int> >& privateRanges() {
     return ranges;
 }
 
+// Java's Double.toString for the numbers CC: Tweaked prints: the shortest digits that read back as the same number, as
+// 123.456 between 1e-3 and 1e7, as 1.23456E10 outside of that
+static std::string javaDoubleToString(double d) {
+    if (d != d) return "NaN";
+    if (d == HUGE_VAL) return "Infinity";
+    if (d == -HUGE_VAL) return "-Infinity";
+    if (d == 0) return std::signbit(d) ? "-0.0" : "0.0";
+    char buf[40];
+    int precision = 0;
+    for (; precision < 17; precision++) { // digits after the first one in scientific form
+        snprintf(buf, sizeof(buf), "%.*e", precision, d);
+        if (strtod(buf, NULL) == d) break;
+    }
+    std::string text = buf; // d.ddddde+XX
+    const bool negative = text[0] == '-';
+    if (negative) text.erase(0, 1);
+    const size_t e = text.find('e');
+    int exponent = atoi(text.c_str() + e + 1);
+    std::string digits = text.substr(0, e);
+    digits.erase(std::remove(digits.begin(), digits.end(), '.'), digits.end());
+    while (digits.size() > 1 && digits.back() == '0') digits.pop_back();
+    std::string result;
+    if (std::fabs(d) >= 1e-3 && std::fabs(d) < 1e7) {
+        if (exponent >= 0) {
+            while ((int)digits.size() < exponent + 1) digits += '0';
+            result = digits.substr(0, exponent + 1) + "." + (digits.size() > (size_t)exponent + 1 ? digits.substr(exponent + 1) : "0");
+        } else result = "0." + std::string(-exponent - 1, '0') + digits;
+    } else {
+        result = digits.substr(0, 1) + "." + (digits.size() > 1 ? digits.substr(1) : "0") + "E" + std::to_string(exponent);
+    }
+    return negative ? "-" + result : result;
+}
+
+std::string coerceToString(lua_State *L, int idx) {
+    switch (lua_type(L, idx)) {
+        case LUA_TNONE: case LUA_TNIL: return "nil";
+        case LUA_TBOOLEAN: return lua_toboolean(L, idx) ? "true" : "false";
+        case LUA_TSTRING: {size_t len; const char * s = lua_tolstring(L, idx, &len); return std::string(s, len);}
+        case LUA_TNUMBER: {
+            const double d = lua_tonumber(L, idx);
+            const int i = d >= -2147483648.0 && d <= 2147483647.0 ? (int)d : (d > 0 ? 2147483647 : (-2147483647 - 1)); // a Java (int) cast saturates
+            return (double)i == d ? std::to_string(i) : javaDoubleToString(d);
+        }
+        default: {
+            char buf[40];
+            snprintf(buf, sizeof(buf), "%s: %08x", luaL_typename(L, idx), (unsigned)(uintptr_t)lua_topointer(L, idx));
+            return buf;
+        }
+    }
+}
+
+std::string normaliseLabel(const std::string& label) {
+    std::string result = label.substr(0, 32);
+    for (char& c : result) {
+        const unsigned char u = (unsigned char)c;
+        if (!((u >= ' ' && u <= '~') || (u >= 161 && u != 167))) c = '?';
+    }
+    return result;
+}
+
 bool matchIPClass(const std::string& address, const std::string& pattern) {
     static const std::regex regex_escape("[\\^\\$\\\\\\.\\+\\?\\(\\)\\[\\]\\{\\}\\|]");
     static const std::regex regex_wildcard("\\*");
-    const std::regex patreg(std::regex_replace(std::regex_replace(pattern, regex_escape, "\\$&"), regex_wildcard, ".*"));
+    const std::regex patreg(std::regex_replace(std::regex_replace(pattern, regex_escape, "\\$&"), regex_wildcard, ".*"), std::regex::icase);
     if ((pattern == "$private" && address == "localhost") || std::regex_match(address, patreg)) return true;
     IPBytes ip;
     if (!parseIPLiteral(address, ip)) return false; // a host name: only the wildcard match above applies

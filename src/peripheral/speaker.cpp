@@ -503,14 +503,23 @@ static Uint32 speaker_audio_empty_timer(Uint32 interval, void* param) {
     return 0;
 }
 
+// A number argument that must be finite, like CC: Tweaked's LuaValues.checkFinite: "bad argument #2 (number expected, got nan)"
+static double optFiniteNumber(lua_State *L, int arg, double def) {
+    if (lua_isnoneornil(L, arg)) return def;
+    const double n = luaL_checknumber(L, arg);
+    if (n != n) luaL_error(L, "bad argument #%d (number expected, got nan)", arg);
+    if (n == HUGE_VAL || n == -HUGE_VAL) luaL_error(L, "bad argument #%d (number expected, got %s)", arg, n > 0 ? "inf" : "-inf");
+    return n;
+}
+
 int speaker::playNote(lua_State *L) {
     lastCFunction = __func__;
-    const std::string inst = luaL_checkstring(L, 1);
-    const float volume = (float)luaL_optnumber(L, 2, 1.0);
-    const int pitch = (int)luaL_optnumber(L, 3, 1.0);
-    if (volume < 0.0f || volume > 3.0f) luaL_error(L, "invalid volume %f", volume);
-    if (pitch < 0 || pitch > 24) luaL_error(L, "invalid pitch %d", pitch);
-    if (speaker_sounds.find(inst) == speaker_sounds.end()) luaL_error(L, "invalid instrument %s", inst.c_str());
+    std::string inst = luaL_checkstring(L, 1);
+    // volume is limited to 0-3 (not rejected), the pitch is any finite number: CC: Tweaked's SpeakerPeripheral.playNote
+    const float volume = (float)std::min(3.0, std::max(0.0, optFiniteNumber(L, 2, 1.0)));
+    const double pitch = optFiniteNumber(L, 3, 1.0);
+    std::transform(inst.begin(), inst.end(), inst.begin(), [](unsigned char c) {return (char)tolower(c);}); // instrument names are case-insensitive
+    if (speaker_sounds.find(inst) == speaker_sounds.end()) luaL_error(L, "Invalid instrument, \"null\"!"); // sic: CC: Tweaked prints the instrument it did not find, which is null
     if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastTickReset).count() >= 50) {
         lastTickReset = std::chrono::system_clock::now();
         noteCount = 0;
@@ -564,8 +573,7 @@ int speaker::playNote(lua_State *L) {
 int speaker::playAudio(lua_State *L) {
     lastCFunction = __func__;
     luaL_checktype(L, 1, LUA_TTABLE);
-    const double volume = luaL_optnumber(L, 2, 1.0);
-    if (volume < 0.0 || volume > 3.0) luaL_error(L, "invalid volume %f", volume);
+    const double volume = std::min(3.0, std::max(0.0, optFiniteNumber(L, 2, 1.0)));
     size_t len = lua_rawlen(L, 1);
     if (len > 131072) luaL_error(L, "Audio data is too large");
     else if (len == 0) luaL_error(L, "Cannot play empty audio");
@@ -677,10 +685,19 @@ int speaker::playSound(lua_State *L) {
     return 0;
 #else
     const std::string inst = luaL_checkstring(L, 1);
-    const float volume = (float)luaL_optnumber(L, 2, 1.0);
-    const float speed = (float)luaL_optnumber(L, 3, 1.0);
-    if (volume < 0.0f || volume > 3.0f) luaL_error(L, "invalid volume %f", volume);
-    if (speed < 0.0f || speed > 2.0f) luaL_error(L, "invalid speed %f", speed);
+    const float volume = (float)std::min(3.0, std::max(0.0, optFiniteNumber(L, 2, 1.0)));
+    float speed = (float)optFiniteNumber(L, 3, 1.0);
+    if (inst.size() > 512) luaL_error(L, "bad argument #1 (sound name is too long)");
+    // a ResourceLocation: [namespace:]path with lowercase letters, digits and _ . - (and / in the path)
+    {
+        const size_t colon = inst.find(':');
+        const std::string ns = colon == std::string::npos ? "minecraft" : inst.substr(0, colon), path = colon == std::string::npos ? inst : inst.substr(colon + 1);
+        const auto valid = [](const std::string& text, bool slash) {
+            return std::all_of(text.begin(), text.end(), [slash](char c) {return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '.' || c == '-' || (slash && c == '/');});
+        };
+        if (!valid(ns, false) || !valid(path, true) || path.find(':') != std::string::npos) luaL_error(L, "bad argument #1 (malformed sound name)");
+    }
+    speed = std::min(2.0f, std::max(0.5f, speed)); // Minecraft limits the pitch of a sound to 0.5-2
     if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastTickReset).count() >= 50) {
         lastTickReset = std::chrono::system_clock::now();
         noteCount = 0;
@@ -833,7 +850,7 @@ int speaker::call(lua_State *L, const char * method) {
     else if (m == "setSoundFont") return setSoundFont(L);
     else if (m == "stop" || m == "stopSounds") return stop(L);
     else if (m == "setPosition") return setPosition(L);
-    else return luaL_error(L, "No such method");
+    else return luaL_error(L, "No such method %s", method);
 }
 
 #define MIXER_FORMATS (MIX_INIT_FLAC | MIX_INIT_MP3 | MIX_INIT_OGG | MIX_INIT_MID)

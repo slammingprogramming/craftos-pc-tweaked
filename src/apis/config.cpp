@@ -17,6 +17,7 @@
 #include "../terminal/RawTerminal.hpp"
 #include "../terminal/SDLTerminal.hpp"
 #include "../util.hpp"
+#include "http_rules.hpp"
 
 #define getConfigSetting(n, type) else if (strcmp(name, #n) == 0) lua_push##type(L, config.n)
 #define setConfigSetting(n, type) else if (strcmp(name, #n) == 0) config.n = lua_to##type(L, 2)
@@ -101,6 +102,14 @@ static int config_get(lua_State *L) {
         lua_createtable(L, config.http_blacklist.size(), 0);
         for (size_t i = 0; i < config.http_blacklist.size(); i++) {
             lua_pushstring(L, config.http_blacklist[i].c_str());
+            lua_rawseti(L, -2, i+1);
+        }
+    } else if (strcmp(name, "http_rules") == 0) {
+        // the rules in use, which are the defaults of the active ROM unless they were changed
+        std::vector<std::string> rules = httpRulesExplicit ? config.http_rules : effectiveHTTPRuleTexts();
+        lua_createtable(L, rules.size(), 0);
+        for (size_t i = 0; i < rules.size(); i++) {
+            lua_pushstring(L, rules[i].c_str());
             lua_rawseti(L, -2, i+1);
         }
     } else if (userConfig.find(name) != userConfig.end()) {
@@ -233,7 +242,7 @@ static int config_set(lua_State *L) {
         config.http_whitelist.clear();
         lua_rawgeti(L, 2, 1);
         for (int i = 1; lua_isstring(L, -1); i++) {
-            config.http_whitelist.push_back(luaL_tolstring(L, -1, NULL));
+            config.http_whitelist.push_back(lua_tostring(L, -1));
             lua_pop(L, 1);
             lua_rawgeti(L, 2, i+1);
         }
@@ -242,10 +251,23 @@ static int config_set(lua_State *L) {
         config.http_blacklist.clear();
         lua_rawgeti(L, 2, 1);
         for (int i = 1; lua_isstring(L, -1); i++) {
-            config.http_blacklist.push_back(luaL_tolstring(L, i, NULL));
+            config.http_blacklist.push_back(lua_tostring(L, -1));
             lua_pop(L, 1);
             lua_rawgeti(L, 2, i+1);
         }
+    } else if (strcmp(name, "http_rules") == 0) {
+        luaL_checktype(L, 2, LUA_TTABLE);
+        std::vector<std::string> rules;
+        lua_rawgeti(L, 2, 1);
+        for (int i = 1; lua_isstring(L, -1); i++) {
+            HTTPRule rule;
+            if (!parseHTTPRule(lua_tostring(L, -1), rule)) return luaL_error(L, "Invalid HTTP rule '%s'", lua_tostring(L, -1));
+            rules.push_back(lua_tostring(L, -1));
+            lua_pop(L, 1);
+            lua_rawgeti(L, 2, i+1);
+        }
+        config.http_rules = rules;
+        httpRulesExplicit = true;
     } else if (userConfig.find(name) != userConfig.end()) {
         isUserConfig = true;
         switch (std::get<0>(userConfig[name])) {
@@ -319,6 +341,12 @@ static int config_add(lua_State *L) {
     else if (configSettings[name].second != 3) return luaL_error(L, "Configuration option %s is not an array", name.c_str());
     if (name == "http_whitelist") config.http_whitelist.push_back(value);
     else if (name == "http_blacklist") config.http_blacklist.push_back(value);
+    else if (name == "http_rules") {
+        HTTPRule rule;
+        if (!parseHTTPRule(value, rule)) return luaL_error(L, "Invalid HTTP rule '%s'", value.c_str());
+        if (!httpRulesExplicit) {config.http_rules = effectiveHTTPRuleTexts(); httpRulesExplicit = true;} // start from the rules in use
+        config.http_rules.push_back(value);
+    }
     return 0;
 }
 
@@ -330,6 +358,10 @@ static int config_remove(lua_State *L) {
     else if (configSettings[name].second != 3) return luaL_error(L, "Configuration option %s is not an array", name.c_str());
     if (name == "http_whitelist") config.http_whitelist.erase(std::remove(config.http_whitelist.begin(), config.http_whitelist.end(), value), config.http_whitelist.end());
     else if (name == "http_blacklist") config.http_blacklist.erase(std::remove(config.http_blacklist.begin(), config.http_blacklist.end(), value), config.http_blacklist.end());
+    else if (name == "http_rules") {
+        if (!httpRulesExplicit) {config.http_rules = effectiveHTTPRuleTexts(); httpRulesExplicit = true;}
+        config.http_rules.erase(std::remove(config.http_rules.begin(), config.http_rules.end(), value), config.http_rules.end());
+    }
     return 0;
 }
 

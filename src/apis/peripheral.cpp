@@ -55,6 +55,16 @@ static int peripheral_getMethods(lua_State *L) {
     return 1;
 }
 
+struct peripheral_dispatch_t {
+    peripheral * p;
+    const char * method;
+};
+
+static int peripheral_dispatch(lua_State *L) {
+    peripheral_dispatch_t * d = (peripheral_dispatch_t*)lua_touserdata(L, lua_upvalueindex(1));
+    return d->p->call(L, d->method);
+}
+
 static int peripheral_call(lua_State *L) {
     lastCFunction = __func__;
     Computer * computer = get_comp(L);
@@ -63,12 +73,33 @@ static int peripheral_call(lua_State *L) {
     peripheral * p;
     {
         std::lock_guard<std::mutex> lock(computer->peripherals_mutex);
-        if (computer->peripherals.find(side) == computer->peripherals.end()) return 0;
+        if (computer->peripherals.find(side) == computer->peripherals.end()) return luaL_error(L, "No peripheral attached");
         lua_remove(L, 1);
         lua_remove(L, 1);
         p = computer->peripherals[side];
     }
-    return p->call(L, func.c_str());
+    // CC: Tweaked raises errors from a peripheral method one level up (PeripheralAPI.call): the position in the message
+    // is where peripheral.call was invoked, not the line inside rom/apis/peripheral.lua that forwards to this function
+    peripheral_dispatch_t dispatch = {p, func.c_str()};
+    const int nargs = lua_gettop(L);
+    lua_pushlightuserdata(L, &dispatch);
+    lua_pushcclosure(L, peripheral_dispatch, 1);
+    lua_insert(L, 1);
+    if (lua_pcall(L, nargs, LUA_MULTRET, 0) == LUA_OK) return lua_gettop(L);
+    if (lua_type(L, -1) == LUA_TSTRING) {
+        // the method ran from C, so its error has no position yet (unless it already carries one from Lua code)
+        const std::string message = lua_tostring(L, -1);
+        const size_t colon = message.find(':');
+        size_t digits = colon == std::string::npos ? 0 : colon + 1;
+        while (digits < message.size() && isdigit((unsigned char)message[digits])) digits++;
+        const bool hasPosition = colon != std::string::npos && digits > colon + 1 && message.compare(digits, 2, ": ") == 0;
+        if (!hasPosition) {
+            luaL_where(L, 2);
+            lua_insert(L, -2);
+            lua_concat(L, 2);
+        }
+    }
+    return lua_error(L);
 }
 
 static int peripheral_hasType(lua_State *L) {

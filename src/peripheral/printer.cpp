@@ -168,27 +168,37 @@ printer::~printer() {
 #endif
 }
 
+// like CC: Tweaked's PrinterPeripheral.getCurrentPage, every function that works on the page needs one to be started
+#define requirePage() if (!started) luaL_error(L, "Page not started")
+
 int printer::write(lua_State *L) {
     lastCFunction = __func__;
-    if (cursorY >= height) return 0;
-    size_t str_sz;
-    const char * str = luaL_checklstring(L, 1, &str_sz);
-    unsigned i;
-    for (i = 0; i < str_sz && i + cursorX < width; i++) 
-        body[cursorY][i+cursorX] = str[i] == '\n' ? '?' : str[i];
-    cursorX += (int)i;
+    const std::string text = coerceToString(L, 1); // any value can be written, like CC: Tweaked's Coerced<String>
+    const char * str = text.c_str();
+    const size_t str_sz = text.size();
+    requirePage();
+    if (cursorY >= 0 && cursorY < height) {
+        for (unsigned i = 0; i < str_sz; i++) {
+            const int x = cursorX + (int)i;
+            if (x >= 0 && x < width) body[cursorY][x] = str[i] == '\n' ? '?' : str[i];
+        }
+    }
+    cursorX += (int)str_sz; // the cursor moves by the length of the text even where it did not fit
     return 0;
 }
 
 int printer::setCursorPos(lua_State *L) {
     lastCFunction = __func__;
-    cursorX = (int)luaL_checkinteger(L, 1)-1;
-    cursorY = (int)luaL_checkinteger(L, 2)-1;
+    const int x = (int)luaL_checkinteger(L, 1), y = (int)luaL_checkinteger(L, 2);
+    requirePage();
+    cursorX = x - 1;
+    cursorY = y - 1;
     return 0;
 }
 
 int printer::getCursorPos(lua_State *L) {
     lastCFunction = __func__;
+    requirePage();
     lua_pushinteger(L, cursorX+1);
     lua_pushinteger(L, cursorY+1);
     return 2;
@@ -196,6 +206,7 @@ int printer::getCursorPos(lua_State *L) {
 
 int printer::getPageSize(lua_State *L) {
     lastCFunction = __func__;
+    requirePage();
     lua_pushinteger(L, width);
     lua_pushinteger(L, height);
     return 2;
@@ -221,7 +232,7 @@ int printer::newPage(lua_State *L) {
 int printer::endPage(lua_State *L) {
     lastCFunction = __func__;
     if (!started) {
-        if (L) lua_pushboolean(L, false);
+        if (L) luaL_error(L, "Page not started"); // (the destructor passes no state and only ends a started page)
         return 1;
     }
 #if PRINT_TYPE == PRINT_TYPE_PDF
@@ -273,7 +284,10 @@ int printer::getInkLevel(lua_State *L) {
 
 int printer::setPageTitle(lua_State *L) {
     lastCFunction = __func__;
-    title = checkstring(L, 1);
+    std::string newTitle;
+    if (!lua_isnoneornil(L, 1)) newTitle = normaliseLabel(checkstring(L, 1));
+    requirePage();
+    title = newTitle;
     return 0;
 }
 
@@ -310,7 +324,7 @@ int printer::call(lua_State *L, const char * method) {
     else if (m == "getPaperLevel") return getPaperLevel(L);
     else if (m == "getInkColor" || m == "getInkColour") return getInkColor(L);
     else if (m == "setInkColor" || m == "setInkColour") return setInkColor(L);
-    else return luaL_error(L, "No such method");
+    else return luaL_error(L, "No such method %s", method);
 }
 
 static luaL_Reg printer_reg[] = {

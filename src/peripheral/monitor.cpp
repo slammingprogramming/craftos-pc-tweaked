@@ -35,17 +35,21 @@ monitor::~monitor() {term->factory->deleteTerminal(term);}
 
 int monitor::write(lua_State *L) {
     lastCFunction = __func__;
-    if (selectedRenderer == 4)   printf("TW:%d;%s\n", term->id, luaL_checkstring(L, 1));
-    size_t str_sz;
-    const char * str = luaL_checklstring(L, 1, &str_sz);
+    const std::string text = coerceToString(L, 1); // any value can be written, like CC: Tweaked's Coerced<String>
+    if (selectedRenderer == 4)   printf("TW:%d;%s\n", term->id, text.c_str());
+    const char * str = text.c_str();
+    const size_t str_sz = text.size();
     std::lock_guard<std::mutex> lock(term->locked);
-    if (term->blinkY < 0 || (term->blinkX >= 0 && (unsigned)term->blinkX >= term->width) || (unsigned)term->blinkY >= term->height) return 0;
-    for (unsigned i = 0; i < str_sz && (term->blinkX < 0 || (unsigned)term->blinkX < term->width); i++, term->blinkX++) {
-        if (term->blinkX >= 0) {
-            term->screen[term->blinkY][term->blinkX] = str[i];
-            term->colors[term->blinkY][term->blinkX] = colors;
+    if (term->blinkY >= 0 && (unsigned)term->blinkY < term->height) {
+        for (size_t i = 0; i < str_sz; i++) {
+            const int x = term->blinkX + (int)i;
+            if (x >= 0 && (unsigned)x < term->width) {
+                term->screen[term->blinkY][x] = str[i];
+                term->colors[term->blinkY][x] = colors;
+            }
         }
     }
+    term->blinkX += (int)str_sz;
     term->changed = true;
     return 0;
 }
@@ -115,7 +119,7 @@ int monitor::getSize(lua_State *L) {
     } else if (lua_isnoneornil(L, 1) || lua_isboolean(L, 1) || (lua_isnumber(L, 1) && lua_tonumber(L, 1) == 0)) {
         lua_pushinteger(L, term->width);
         lua_pushinteger(L, term->height);
-    } else luaL_error(L, "bad argument #1 (expected boolean or number, got %s)", lua_typename(L, lua_type(L, 1)));
+    } else luaL_error(L, "bad argument #1 (boolean or number expected, got %s)", argTypeName(L, 1));
     return 2;
 }
 
@@ -148,7 +152,7 @@ int monitor::setTextColor(lua_State *L) {
     lastCFunction = __func__;
     if (selectedRenderer == 4 && luaL_checkinteger(L, 1) >= 0 && luaL_checkinteger(L, 1) < 16)
         printf("TF:%d;%c\n", term->id, ("0123456789abcdef")[lua_tointeger(L, 1)]);
-    const int c = log2i((int)luaL_checkinteger(L, 1));
+    const int c = parseColour(L, 1);
     if (c < 0 || c > 15) return luaL_error(L, "bad argument #1 (invalid color %d)", c);
     colors = (colors & 0xf0) | c;
     if (dynamic_cast<SDLTerminal*>(term) != NULL) dynamic_cast<SDLTerminal*>(term)->cursorColor = c;
@@ -159,7 +163,7 @@ int monitor::setBackgroundColor(lua_State *L) {
     lastCFunction = __func__;
     if (selectedRenderer == 4 && luaL_checkinteger(L, 1) >= 0 && luaL_checkinteger(L, 1) < 16)
         printf("TK:%d;%c\n", term->id, ("0123456789abcdef")[lua_tointeger(L, 1)]);
-    const int c = log2i((int)luaL_checkinteger(L, 1));
+    const int c = parseColour(L, 1);
     if (c < 0 || c > 15) return luaL_error(L, "bad argument #1 (invalid color %d)", c);
     colors = (colors & 0x0f) | (c << 4);
     return 0;
@@ -210,7 +214,7 @@ int monitor::getPaletteColor(lua_State *L) {
     lastCFunction = __func__;
     int color;
     if (term->mode == 2) color = (int)luaL_checkinteger(L, 1);
-    else color = log2i((int)luaL_checkinteger(L, 1));
+    else color = parseColour(L, 1);
     if (color < 0 || color > 255) return luaL_error(L, "bad argument #1 (invalid color %d)", color);
     lua_pushnumber(L, term->palette[color].r/255.0);
     lua_pushnumber(L, term->palette[color].g/255.0);
@@ -227,7 +231,7 @@ int monitor::setPaletteColor(lua_State *L) {
     }
     int color;
     if (term->mode == 2) color = (int)luaL_checkinteger(L, 1);
-    else color = log2i((int)luaL_checkinteger(L, 1));
+    else color = parseColour(L, 1);
     if (color < 0 || color > 255) return luaL_error(L, "bad argument #1 (invalid color %d)", color);
     std::lock_guard<std::mutex> lock(term->locked);
     if (lua_isnoneornil(L, 3)) {
@@ -248,7 +252,7 @@ int monitor::setPaletteColor(lua_State *L) {
 
 int monitor::setGraphicsMode(lua_State *L) {
     lastCFunction = __func__;
-    if (!lua_isnumber(L, 1) && !lua_isboolean(L, 1)) luaL_error(L, "bad argument #1 (expected number, got %s)", lua_typename(L, lua_type(L, 1)));
+    if (!lua_isnumber(L, 1) && !lua_isboolean(L, 1)) luaL_error(L, "bad argument #1 (number expected, got %s)", argTypeName(L, 1));
     if (selectedRenderer == 1 || selectedRenderer == 2) return 0;
     if (lua_isnumber(L, 1) && (lua_tointeger(L, 1) < 0 || lua_tointeger(L, 1) > 2)) return luaL_error(L, "bad argument #1 (invalid mode %d)", lua_tointeger(L, 1));
     std::lock_guard<std::mutex> lock(term->locked);
@@ -274,7 +278,7 @@ int monitor::setPixel(lua_State *L) {
     if (selectedRenderer == 1 || selectedRenderer == 2) return 0;
     const int x = (int)luaL_checkinteger(L, 1);
     const int y = (int)luaL_checkinteger(L, 2);
-    const int color = term->mode == 1 ? log2i((int)lua_tointeger(L, 3)) : (int)lua_tointeger(L, 3);
+    const int color = term->mode == 1 ? parseColour(L, 3) : (int)lua_tointeger(L, 3);
     std::lock_guard<std::mutex> lock(term->locked);
     if (x < 0 || y < 0 || (unsigned)x >= term->width * 6 || (unsigned)y >= term->height * 9) return 0;
     if (color < 0 || color > (term->mode == 2 ? 255 : 15)) return luaL_error(L, "bad argument #3 (invalid color %d)", color);
@@ -297,7 +301,12 @@ int monitor::getPixel(lua_State *L) {
 
 int monitor::setTextScale(lua_State *L) {
     lastCFunction = __func__;
-    unsigned charScale = (unsigned)(luaL_checknumber(L, 1) * 2.0);
+    const double requested = luaL_checknumber(L, 1);
+    if (requested != requested) luaL_error(L, "bad argument #1 (number expected, got nan)");
+    if (requested == HUGE_VAL || requested == -HUGE_VAL) luaL_error(L, "bad argument #1 (number expected, got %s)", requested > 0 ? "inf" : "-inf");
+    const int scale = (int)(requested * 2.0); // cut off to halves, like CC: Tweaked
+    if (scale < 1 || scale > 10) luaL_error(L, "Expected number in range 0.5-5");
+    unsigned charScale = (unsigned)scale;
     SDLTerminal * sdlterm = dynamic_cast<SDLTerminal*>(term);
     if (sdlterm != NULL) queueTask([charScale](void* term)->void*{((SDLTerminal*)term)->setCharScale(charScale); return NULL;}, sdlterm);
     return 0;
@@ -327,7 +336,7 @@ int monitor::drawPixels(lua_State *L) {
     const bool isSolidFill = fillType == LUA_TNUMBER;
 
     if (!isSolidFill && fillType != LUA_TTABLE)
-        return luaL_error(L, "bad argument #3 (expected table or number, got %s)", lua_typename(L, lua_type(L, 3)));
+        return luaL_error(L, "bad argument #3 (table or number expected, got %s)", argTypeName(L, 3));
 
     bool undefinedWidth;
     unsigned width, height;
@@ -448,7 +457,7 @@ int monitor::getPixels(lua_State* L) {
     if (end_w < 0) return luaL_argerror(L, 3, "width cannot be negative");
     else if (end_h < 0) return luaL_argerror(L, 4, "height cannot be negative");
     else if (!lua_isnoneornil(L, 5) && !lua_isboolean(L, 5))
-        return luaL_error(L, "bad argument #5 (expected boolean, got %s)", lua_typename(L, lua_type(L, 5)));
+        return luaL_error(L, "bad argument #5 (boolean expected, got %s)", argTypeName(L, 5));
 
     const bool use_strings = lua_toboolean(L, 5);
 
@@ -532,7 +541,7 @@ int monitor::screenshot(lua_State *L) {
 
 int monitor::setFrozen(lua_State *L) {
     lastCFunction = __func__;
-    if (!lua_isboolean(L, 1)) luaL_error(L, "bad argument #1 (expected boolean, got %s)", lua_typename(L, lua_type(L, 1)));
+    if (!lua_isboolean(L, 1)) luaL_error(L, "bad argument #1 (boolean expected, got %s)", argTypeName(L, 1));
     if (term == NULL) return 0;
     std::lock_guard<std::mutex> lock(term->locked);
     term->frozen = lua_toboolean(L, 1);
@@ -613,7 +622,7 @@ int monitor::call(lua_State *L, const char * method) {
     else if (m == "getFrozen") return getFrozen(L);
     else if (m == "setSize") return setSize(L);
     else if (m == "setBlockSize") return setBlockSize(L);
-    else return luaL_error(L, "No such method");
+    else return luaL_error(L, "No such method %s", method);
 }
 
 static luaL_Reg monitor_reg[] = {

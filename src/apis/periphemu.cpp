@@ -21,6 +21,7 @@
 #include "../peripheral/modem.hpp"
 #include "../peripheral/monitor.hpp"
 #include "../peripheral/printer.hpp"
+#include "../peripheral/scripted.hpp"
 #include "../peripheral/speaker.hpp"
 #include "../peripheral/tank.hpp"
 #include "../runtime.hpp"
@@ -38,6 +39,7 @@ static std::unordered_map<std::string, peripheral_init_fn> initializers = {
     {"minecraft:chest", peripheral_init_fn(chest::init)},
     {"energy", peripheral_init_fn(energy::init)},
     {"tank", peripheral_init_fn(tank::init)},
+    {"scripted", peripheral_init_fn(scripted::init)},
 #ifndef NO_MIXER
     {"speaker", peripheral_init_fn(speaker::init)}
 #endif
@@ -139,7 +141,7 @@ bool detachPeripheral(Computer * computer, const std::string& side) {
 
 static int periphemu_create(lua_State* L) {
     lastCFunction = __func__;
-    if (!lua_isstring(L, 1) && !lua_isnumber(L, 1)) return luaL_error(L, "bad argument #1 (expected string or number, got %s)", lua_typename(L, lua_type(L, 1)));
+    if (!lua_isstring(L, 1) && !lua_isnumber(L, 1)) return luaL_error(L, "bad argument #1 (string or number expected, got %s)", argTypeName(L, 1));
     Computer * computer = get_comp(L);
     const std::string type = luaL_checkstring(L, 2);
     std::string side = lua_isnumber(L, 1) ? type + "_" + std::to_string(lua_tointeger(L, 1)) : lua_tostring(L, 1);

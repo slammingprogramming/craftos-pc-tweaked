@@ -1,0 +1,15 @@
+diff --git a/src/lauxlib.c b/src/lauxlib.c
+index d4b24d3..a73211d 100644
+--- a/src/lauxlib.c
++++ b/src/lauxlib.c
+@@ -179,8 +179,8 @@ static int typeerror (lua_State *L, int narg, const char *tname) {
+   if (luaL_getmetafield(L, narg, "__name"))
+     tn = lua_tostring(L, -1);
+   if (!tn)
+-    tn = luaL_typename(L, narg);
+-  msg = lua_pushfstring(L, "expected %s, got %s", tname, tn);
++    tn = lua_type(L, narg) == LUA_TNONE ? "nil" : luaL_typename(L, narg);  /* CC: Tweaked never says "no value" */
++  msg = lua_pushfstring(L, "%s expected, got %s", tname, tn);  /* ... and puts the expected type first */
+   return luaL_argerror(L, narg, msg);
+ }
+ 

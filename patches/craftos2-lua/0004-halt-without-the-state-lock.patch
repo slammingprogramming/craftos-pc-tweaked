@@ -1,0 +1,26 @@
+diff --git a/src/lapi.c b/src/lapi.c
+index 6949603..1a5ead7 100644
+--- a/src/lapi.c
++++ b/src/lapi.c
+@@ -1361,17 +1361,17 @@ LUA_API void lua_upvaluejoin (lua_State *L, int fidx1, int n1,
+   luaC_objbarrier(L, f1, *up2);
+ }
+ 
++/* These two are called from other threads (the timeout timer, window events) while the state is running. They must not
++   take the state's lock: that lock is held for as long as the code runs whenever locking is enabled (for example when a
++   modem is attached), so waiting for it would never end and a runaway loop could not be stopped. They only set flags
++   that the interpreter loop polls. */
+ LUA_API void lua_halt(lua_State *L) {
+-  lua_lock(L);
+   G(L)->haltstate = 1;
+-  lua_unlock(L);
+ }
+ 
+ LUA_API void lua_externalerror(lua_State *L, const char * message) {
+-  lua_lock(L);
+   G(L)->haltmessage = message;
+   G(L)->haltstate = 2;
+-  lua_unlock(L);
+ }
+ 
+ LUA_API void lua_setlockstate(lua_State *L, int enabled) {

@@ -1,0 +1,47 @@
+-- SPDX-FileCopyrightText: 2026 slammingprogramming
+--
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
+-- Disk drives, following DiskDrivePeripheral (Java), with and without a disk.
+describe("A disk drive", function()
+    local drive
+    before_each(function()
+        periphemu.create("left", "drive")
+        drive = peripheral.wrap("left")
+    end)
+
+    it("without a disk reports nothing", function()
+        expect(drive.isDiskPresent()):eq(false)
+        expect(drive.getDiskLabel()):eq(nil)
+        expect(drive.hasData()):eq(false)
+        expect(drive.getMountPath()):eq(nil)
+        expect(drive.hasAudio()):eq(false)
+        expect(drive.getAudioTitle()):eq(false)
+        expect(drive.getDiskID()):eq(nil)
+        drive.stopAudio()
+        drive.ejectDisk()
+        drive.setDiskLabel("ignored")
+        periphemu.remove("left")
+    end)
+
+    it("with a data disk mounts it", function()
+        local id = 1000 + math.random(1, 1000)
+        drive.insertDisk(id)
+        expect(drive.isDiskPresent()):eq(true)
+        expect(drive.hasData()):eq(true)
+        expect(drive.hasAudio()):eq(false)
+        expect(drive.getAudioTitle()):eq(nil)
+        expect(drive.getDiskID()):eq(id)
+        local path = drive.getMountPath()
+        expect(type(path)):eq("string")
+        expect(fs.isDir(path)):eq(true)
+        drive.setDiskLabel("test disk")
+        expect(drive.getDiskLabel()):eq("test disk")
+        drive.setDiskLabel()
+        expect(drive.getDiskLabel()):eq(nil)
+        drive.ejectDisk()
+        expect(drive.isDiskPresent()):eq(false)
+        expect(fs.exists(path)):eq(false)
+        periphemu.remove("left")
+    end)
+end)

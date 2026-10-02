@@ -5,13 +5,29 @@
 
 -- Runs CC: Tweaked's own test suite (McFly, from projects/core/src/test/resources/test-rom) inside the emulator.
 --
---   craftos-tweaked --headless --mount-ro test-rom=<path to test-rom> --script resources/CCT-Test-Bootstrap.lua [spec path | debugger]
+--   craftos-tweaked --headless --mount-ro test-rom=<path to test-rom> --script resources/CCT-Test-Bootstrap.lua --args "[spec path | debugger] [spec folder]"
 --
--- The optional argument is a spec file or folder inside the mounted test-rom (default: everything, /test-rom/spec).
+-- The optional argument is a spec file or folder inside the mounted test-rom (default: everything, /test-rom/spec). The
+-- second argument is the folder McFly runs when it is not /test-rom/spec: CraftOS-Tweaked's own specs (tests/specs) are
+-- mounted as /emu-spec and run with "/emu-spec/redstone_spec.lua /emu-spec".
 -- The emulator exits with the number of failing tests, or 255 if the run did not finish.
-local arg = ...
+local arg, root = ...
+root = fs.combine(root or "/test-rom/spec") -- the folder McFly runs (CraftOS-Tweaked's own specs live in another one)
 config.set("computerSpaceLimit", 10000000) -- CC: Tweaked's fs tests expect a finite, but large, limit
-config.add("http_blacklist", "$private")
+-- CC: Tweaked's test computer has a modem on top (its peripheral specs check it)
+periphemu.create("top", "modem")
+-- ... and a peripheral hub below it with one remote peripheral, "remote_1" (ComputerTestDelegate.FakePeripheralHub)
+periphemu.create("bottom", "scripted", {
+    type = "peripheral_hub",
+    methods = {
+        getNamesRemote = function() return { "remote_1" } end,
+        isPresentRemote = function(name) return name == "remote_1" end,
+        getTypeRemote = function(name) if name == "remote_1" then return "remote", "other_type" end end,
+        hasTypeRemote = function(name, type) if name == "remote_1" then return type == "remote" or type == "other_type" end end,
+        getMethodsRemote = function(name) if name == "remote_1" then return { "func" } end end,
+        callRemote = function(name, method) end,
+    },
+})
 if arg == "debugger" then
     periphemu.create("left", "debugger")
     peripheral.call("left", "break")
@@ -36,15 +52,16 @@ if arg and arg:sub(-9) == "_spec.lua" then
         local result = {}
         for _, name in ipairs(names) do
             local path = fs.combine(dir, name)
-            if path == target or (target:sub(1, #path + 1) == path .. "/") or not fs.combine(dir):find("^test%-rom/spec") then
+            local inside = fs.combine(dir) == root or fs.combine(dir):sub(1, #root + 1) == root .. "/"
+            if path == target or (target:sub(1, #path + 1) == path .. "/") or not inside then
                 result[#result + 1] = name
             end
         end
         return result
     end
-    arg = "/test-rom/spec"
+    arg = "/" .. root
 end
-shell.run("/test-rom/mcfly " .. (arg or "/test-rom/spec"))
+shell.run("/test-rom/mcfly " .. (arg or ("/" .. root)))
 logfile:close()
 
 -- McFly prints "Ran N test(s), of which M passed (P%)." when it finishes
@@ -52,4 +69,5 @@ local log = assert(io.open("test-log.txt", "r"))
 local text = log:read("*a")
 log:close()
 local ran, passed = text:match("Ran (%d+) test%(s%), of which (%d+) passed")
+config.set("standardsMode", false) -- in this mode a window would stay open after the shutdown
 if ran then os.shutdown(tonumber(ran) - tonumber(passed)) else os.shutdown(255) end

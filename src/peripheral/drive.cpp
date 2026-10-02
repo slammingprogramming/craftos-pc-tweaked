@@ -10,6 +10,7 @@
  */
 
 #include <dirent.h>
+#include <fstream>
 #include <sys/stat.h>
 #include "drive.hpp"
 #include "../platform.hpp"
@@ -22,19 +23,36 @@ int drive::isDiskPresent(lua_State *L) {
     return 1;
 }
 
+// the label of a data disk is kept next to its folder: disk/<id>.label
+static path_t diskLabelPath(const path_t& computerDir, int id) {return computerDir / "disk" / (std::to_string(id) + ".label");}
+
 int drive::getDiskLabel(lua_State *L) {
     lastCFunction = __func__;
     if (diskType == disk_type::DISK_TYPE_AUDIO) return getAudioTitle(L);
     else if (diskType == disk_type::DISK_TYPE_MOUNT) {
         lua_pushstring(L, path.filename().string().c_str());
         return 1;
+    } else if (diskType == disk_type::DISK_TYPE_DISK) {
+        std::ifstream in(diskLabelPath(computerDir, id), std::ios::binary);
+        std::string label;
+        if (in.is_open() && std::getline(in, label) && !label.empty()) lua_pushlstring(L, label.c_str(), label.size());
+        else lua_pushnil(L); // a disk without a label
+        return 1;
     }
     return 0;
 }
 
 int drive::setDiskLabel(lua_State *L) {
-    // unimplemented
+    lastCFunction = __func__;
+    if (!lua_isnoneornil(L, 1) && lua_type(L, 1) != LUA_TSTRING) luaL_error(L, "bad argument #1 (string expected, got %s)", argTypeName(L, 1));
     if (diskType == disk_type::DISK_TYPE_AUDIO) luaL_error(L, "Disk label cannot be changed");
+    if (diskType != disk_type::DISK_TYPE_DISK) return 0;
+    std::error_code e;
+    if (lua_isnoneornil(L, 1)) fs::remove(diskLabelPath(computerDir, id), e);
+    else {
+        std::ofstream out(diskLabelPath(computerDir, id), std::ios::binary | std::ios::trunc);
+        out << normaliseLabel(lua_tostring(L, 1));
+    }
     return 0;
 }
 
@@ -235,8 +253,8 @@ int drive::insertDisk(lua_State *L, bool init) {
         }
 #endif
     } else {
-        if (init) throw std::invalid_argument("bad argument (expected string or number)");
-        else luaL_error(L, "bad argument #%d (expected string or number, got %s)", arg, lua_typename(L, lua_type(L, arg)));
+        if (init) throw std::invalid_argument("bad argument (string or number expected)");
+        else luaL_error(L, "bad argument #%d (string or number expected, got %s)", arg, lua_typename(L, lua_type(L, arg)));
     }
     queueEvent(comp, disk_event, (void*)side.c_str());
     return 0;
@@ -289,7 +307,7 @@ int drive::call(lua_State *L, const char * method) {
     else if (m == "ejectDisk") return ejectDisk(L);
     else if (m == "getDiskID") return getDiskID(L);
     else if (m == "insertDisk") return insertDisk(L);
-    else return luaL_error(L, "No such method");
+    else return luaL_error(L, "No such method %s", method);
 }
 
 static luaL_Reg drive_reg[] = {
