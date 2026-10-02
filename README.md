@@ -194,6 +194,9 @@ Using the same language that Lua uses guarantees compatibility with the base API
 **4. It doesn't rely on any single platform**
 I wanted to keep CraftOS-PC Classic's wide compatibility in CraftOS-PC 2. Using other languages such as C# or Swift are platform-dependent and are not guaranteed to work on any platform. C++ is a basic language that's always present and maintains a portable library that works on all platforms. I've moved all platform-specific code into the platform_*.cpp files so the rest of the code can remain as independent as possible.
 
+## Contact
+Bugs and feature requests: use the [issue forms](https://github.com/slammingprogramming/craftos-pc-tweaked/issues/new/choose). Security vulnerabilities and anything private: contact the maintainer on [SimpleX](https://smp14.simplex.im/a#3gZ-zeHs4QrFZKLAN0o3SC_XQJXhj1eYBVTO_c0FAtg); see [SECURITY.md](SECURITY.md).
+
 ## License
 Copyright (c) 2026 slammingprogramming, and (c) 2019-2024 JackMacWindows for the original CraftOS-PC 2.
 

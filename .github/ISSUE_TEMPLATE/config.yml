@@ -5,8 +5,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: Report a security vulnerability (private)
-    url: https://github.com/slammingprogramming/craftos-pc-tweaked/security/advisories/new
-    about: Sandbox escapes, arbitrary code execution and similar problems should be reported privately, not as a public issue. See SECURITY.md.
+    url: https://smp14.simplex.im/a#3gZ-zeHs4QrFZKLAN0o3SC_XQJXhj1eYBVTO_c0FAtg
+    about: Sandbox escapes, arbitrary code execution and similar problems must be reported privately on SimpleX, not as a public issue. See SECURITY.md.
+  - name: Contact the maintainer privately (SimpleX)
+    url: https://smp14.simplex.im/a#3gZ-zeHs4QrFZKLAN0o3SC_XQJXhj1eYBVTO_c0FAtg
+    about: For anything that should not be public. For normal bugs and feature requests please use the issue forms instead.
   - name: CC Tweaked documentation
     url: https://tweaked.cc/
     about: Check how CC Tweaked itself behaves before reporting a compatibility difference.
