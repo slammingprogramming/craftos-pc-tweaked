@@ -122,10 +122,12 @@ You can get all of these dependencies with:
   * Ubuntu: `sudo apt install git build-essential libsdl2-dev libsdl2-mixer-dev libhpdf-dev libpng++-dev libwebp-dev libpoco-dev libncurses5-dev; git clone https://github.com/MCJack123/craftos2-rom`
   * Arch Linux: `sudo pacman -S sdl2 sdl2_mixer png++ libwebp libharu poco ncurses`
 
-### Windows artifact builds
-Builds of each commit are automatically uploaded for Windows in the Actions tab. These builds are provided to allow Windows users to test new features without having to build the entire solution and dependencies. Note that these files are just the raw executable. You must drop the file into a pre-existing CraftOS-PC install directory for it to work properly. Depending on changes made in the latest version, you may also have to download the latest [ROM](https://github.com/MCJack123/craftos2-rom). You can download the latest file directly [here](https://nightly.link/MCJack123/craftos2/workflows/main/master/CraftOS-PC-Artifact.zip).
+### Automated builds (GitHub Actions)
+All official builds are made by GitHub Actions, not on developer machines:
+* **CI** (`.github/workflows/main.yml`) builds and tests on every push and pull request: Linux (all features, no optional features, and standalone ROM), the CC: Tweaked test suite, and Windows x64 and ARM64. Each run uploads the Windows and Linux binaries as artifacts, which you can download from the [Actions tab](https://github.com/slammingprogramming/craftos-pc-tweaked/actions). These artifacts are raw binaries; for Windows, drop them into a directory that already contains the [ROM](https://github.com/MCJack123/craftos2-rom).
+* **Release** (`.github/workflows/release.yml`) runs when a GitHub Release is published. It rebuilds everything and attaches portable Windows (x64 and ARM64) and Linux (x86_64) packages with the ROM, plus `sha256-hashes.txt`, to the release.
 
-Old nightly builds, as well as Android betas, are available [on the website](https://www.craftos-pc.cc/nightly/).
+macOS, iOS and Android builds, Windows installers and distro packages are not built by CI yet.
 
 ### Instructions
 #### Windows
