@@ -187,6 +187,9 @@
     <ClInclude Include="src\util.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\mem\cluster.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="api\Computer.hpp">
       <Filter>Header Files\api</Filter>
     </ClInclude>
@@ -352,6 +355,9 @@
       <Filter>Source Files\platform</Filter>
     </ClCompile>
     <ClCompile Include="src\util.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mem\cluster.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\plugin.cpp">

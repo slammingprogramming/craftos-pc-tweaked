@@ -662,6 +662,7 @@
     <ClInclude Include="src\terminal\SDLTerminal.hpp" />
     <ClInclude Include="src\terminal\TRoRTerminal.hpp" />
     <ClInclude Include="src\util.hpp" />
+    <ClInclude Include="src\mem\cluster.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="examples\raw_frame_reader.cpp">
@@ -698,6 +699,7 @@
     </ClCompile>
     <ClCompile Include="src\plugin.cpp" />
     <ClCompile Include="src\util.cpp" />
+    <ClCompile Include="src\mem\cluster.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\runtime.cpp" />
     <ClCompile Include="src\peripheral\chest.cpp" />

@@ -218,7 +218,8 @@ jobs:
       with:
         vcpkgGitCommitId: baf57686c0ec86cbf2e4c055ea09cee710280cc6
     - name: Set up binary cache
-      uses: actions/cache@v4
+      id: vcpkg-cache
+      uses: actions/cache/restore@v4
       with:
         path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
         key: ${{ runner.os }}-vcpkg-binary-cache-${{ hashFiles('vcpkg*.json') }}
@@ -287,6 +288,13 @@ jobs:
         name: CraftOS-Tweaked-windows-x64-symbols
         path: symbols/
         if-no-files-found: error
+    - name: Save binary cache
+      # Save the compiled dependencies even if the build failed, so a retry doesn't rebuild them all
+      if: ${{ always() && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+        key: ${{ runner.os }}-vcpkg-binary-cache-${{ hashFiles('vcpkg*.json') }}
 
   windows-arm64:
     name: Windows (ARM64)
@@ -300,7 +308,8 @@ jobs:
       with:
         vcpkgGitCommitId: 1b4a65242adfd65a82b1d1a6f31f1accdfe09af9
     - name: Set up binary cache
-      uses: actions/cache@v4
+      id: vcpkg-cache
+      uses: actions/cache/restore@v4
       with:
         path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
         key: ${{ runner.os }}-vcpkg-binary-cache-arm-${{ hashFiles('vcpkg*.json') }}
@@ -357,3 +366,10 @@ jobs:
         name: CraftOS-Tweaked-windows-arm64-symbols
         path: symbols/
         if-no-files-found: error
+    - name: Save binary cache
+      # Save the compiled dependencies even if the build failed, so a retry doesn't rebuild them all
+      if: ${{ always() && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+        key: ${{ runner.os }}-vcpkg-binary-cache-arm-${{ hashFiles('vcpkg*.json') }}
