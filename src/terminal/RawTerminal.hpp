@@ -1,6 +1,6 @@
 /*
  * terminal/RawTerminal.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines the RawTerminal class.
  * 

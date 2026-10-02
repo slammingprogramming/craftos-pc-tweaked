@@ -1,6 +1,6 @@
 /*
  * configuration.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  *
  * This file defines structures used for storing the configuration.
  *

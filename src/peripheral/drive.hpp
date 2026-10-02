@@ -1,6 +1,6 @@
 /*
  * peripheral/drive.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines the class for the drive peripheral.
  * 

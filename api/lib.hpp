@@ -1,6 +1,6 @@
 /*
  * lib.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines some functions and constants useful for plugins.
  * 
@@ -56,7 +56,7 @@ struct library_t {
 /**
  * Returns the associated Computer object pointer for a Lua state.
  * This is a bit slow, so try not to call it too much, or cache results.
- * (CraftOS-PC caches results internally.)
+ * (CraftOS-Tweaked caches results internally.)
  * @param L The Lua state to get the computer for
  * @return The Computer object the state is running on
  */

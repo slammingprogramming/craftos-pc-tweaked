@@ -1,6 +1,6 @@
 /*
  * terminal/RawTerminal.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements the RawTerminal class.
  * 

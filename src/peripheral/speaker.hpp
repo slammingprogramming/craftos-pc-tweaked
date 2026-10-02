@@ -1,6 +1,6 @@
 /*
  * peripheral/speaker.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines the class for the speaker peripheral.
  * 

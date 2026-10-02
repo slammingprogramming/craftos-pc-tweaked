@@ -1,8 +1,8 @@
 /*
  * runtime.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
- * This file defines some common methods for the CraftOS-PC runtime.
+ * This file defines some common methods for the CraftOS-Tweaked runtime.
  * 
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.

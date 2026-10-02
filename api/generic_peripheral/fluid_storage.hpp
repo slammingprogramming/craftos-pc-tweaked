@@ -1,6 +1,6 @@
 /*
  * generic_peripheral/fluid_storage.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines a generic peripheral class for tank-like peripherals
  * to inherit from.

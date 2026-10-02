@@ -1,6 +1,6 @@
 /*
  * generic_peripheral/energy_storage.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines a generic peripheral class for energy-storing peripherals
  * to inherit from.

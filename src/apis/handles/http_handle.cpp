@@ -1,6 +1,6 @@
 /*
  * apis/handles/http_handle.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements the methods for HTTP handles.
  * 

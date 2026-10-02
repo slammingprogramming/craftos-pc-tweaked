@@ -1,6 +1,6 @@
 /*
  * apis/http_emscripten.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements the http API for the Emscripten platform, which does not
  * support the standard HTTP implementation using Poco.
@@ -291,11 +291,11 @@ int http_checkURL(lua_State *L) {
 }
 
 int http_addListener(lua_State *L) {
-    return luaL_error(L, "CraftOS-PC Online does not support running HTTP servers.");
+    return luaL_error(L, "CraftOS-Tweaked Online does not support running HTTP servers.");
 }
 
 int http_removeListener(lua_State *L) {
-    return luaL_error(L, "CraftOS-PC Online does not support running HTTP servers.");
+    return luaL_error(L, "CraftOS-Tweaked Online does not support running HTTP servers.");
 }
 
 int http_websocket(lua_State *L) {

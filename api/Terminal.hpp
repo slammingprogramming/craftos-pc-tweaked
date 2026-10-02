@@ -1,6 +1,6 @@
 /*
  * Terminal.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines the Terminal base class, which is implemented by all 
  * renderer classes.

@@ -1,9 +1,9 @@
 /*
  * runtime.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements some common functions relating to the functioning of
- * the CraftOS-PC emulation session.
+ * the CraftOS-Tweaked emulation session.
  * 
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.

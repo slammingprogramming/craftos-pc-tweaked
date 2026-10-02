@@ -1,6 +1,6 @@
 /*
  * peripheral/computer.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines the methods for the computer peripheral.
  * 

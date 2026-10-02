@@ -1,6 +1,6 @@
 /*
  * terminal/TRoRTerminal.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements the TRoRTerminal class.
  * 
@@ -19,7 +19,7 @@
 #include "../termsupport.hpp"
 
 /*
-CraftOS-PC adds the "ccpcTerm" extension to add some extra features. Even if the
+CraftOS-Tweaked adds the "ccpcTerm" extension to add some extra features. Even if the
 client doesn't support "ccpcTerm", the ID of the window is always sent in the 
 metadata field. If the client sends a packet without an ID in the metadata, it
 is assumed to be meant for the first window (ID 0).
@@ -29,8 +29,8 @@ is assumed to be meant for the first window (ID 0).
 | `TQ` | None          | Alerts the client or server that the window has been closed. Clients and servers MAY send this at any time. |
 | `TZ` | `<title>`     | Alerts the client that the window's title has changed. |
 | `TA` | `"<title>","<message>"` | Shows a message on the client's screen. The title and message will both be in quotes and separated by a comma. The client SHOULD NOT split the string at the first comma since there may be commas before the separator. |
-| `TR` | `<w>,<h>`     | With the CraftOS-PC extension, clients MAY send a resize message to the server as well. |
-| `SC` | `<message>`   | With the CraftOS-PC extension, clients MAY send a close message to the server as well. |
+| `TR` | `<w>,<h>`     | With the CraftOS-Tweaked extension, clients MAY send a resize message to the server as well. |
+| `SC` | `<message>`   | With the CraftOS-Tweaked extension, clients MAY send a close message to the server as well. |
 */
 
 static std::unordered_set<std::string> trorExtensions;

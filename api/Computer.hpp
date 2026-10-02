@@ -1,6 +1,6 @@
 /*
  * Computer.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  *
  * This file defines the Computer class, which stores the state of each running
  * computer.
@@ -66,7 +66,7 @@ struct Computer {
     std::unordered_map<int, void *> userdata;                                                  // A free dictionary for use by plugins to store any data that is linked to a single computer
     std::unordered_map<int, std::function<void(Computer*, int, void*)> > userdata_destructors; // A dictionary that is used to store any destructors/cleanup functions for userdata entries
     
-    // These properties will likely be of little use to anything outside of CraftOS-PC. They store info about the internal state of the computer, and modifying these values may break things.
+    // These properties will likely be of little use to anything outside of CraftOS-Tweaked. They store info about the internal state of the computer, and modifying these values may break things.
     // Do not use these unless you know what you're doing! (They would be private, but there are many non-members that use these values and would need to be listed as friends.)
     std::queue<std::string> eventQueue; // A queue holding the names of each event in the queue
     lua_State * paramQueue; // A Lua stack that stores the parameters for each event in the queue

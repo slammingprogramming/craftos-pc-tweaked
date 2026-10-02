@@ -1,6 +1,6 @@
 /*
  * terminal/CLITerminal.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines the CLITerminal class.
  * 

@@ -1,6 +1,6 @@
 /*
  * terminal/TRoRTerminal.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines the TRoRTerminal class.
  * 

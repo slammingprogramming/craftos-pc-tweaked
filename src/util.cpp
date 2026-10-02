@@ -1,6 +1,6 @@
 /*
  * util.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements some commonly-used functions.
  * 

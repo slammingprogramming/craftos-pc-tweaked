@@ -1,6 +1,6 @@
 /*
  * http.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements the methods for the http API.
  * 
@@ -278,7 +278,7 @@ downloadThread_entry:
         size_t requestSize = param->postData.size();
         for (const auto& h : param->headers) {request.add(h.first, h.second); requestSize += h.first.size() + h.second.size() + 1;}
         if (isLocalhost) request.add("Host", "localhost:" + std::to_string(uri.getPort()));
-        if (!request.has("User-Agent")) request.add("User-Agent", "computercraft/" CRAFTOSPC_CC_VERSION " CraftOS-PC/" CRAFTOSPC_VERSION);
+        if (!request.has("User-Agent")) request.add("User-Agent", "computercraft/" CRAFTOSPC_CC_VERSION " CraftOS-Tweaked/" CRAFTOSPC_VERSION);
         if (!request.has("Accept-Charset")) request.add("Accept-Charset", "UTF-8");
         if (!param->postData.empty()) {
             if (request.getContentLength() == HTTPRequest::UNKNOWN_CONTENT_LENGTH) request.setContentLength(param->postData.size());
@@ -424,7 +424,7 @@ void HTTPDownload(const std::string& url, const std::function<void(std::istream*
     HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
     HTTPResponse response;
     session.setTimeout(Poco::Timespan(5000000));
-    request.add("User-Agent", "CraftOS-PC/" CRAFTOSPC_VERSION " ComputerCraft/" CRAFTOSPC_CC_VERSION);
+    request.add("User-Agent", "CraftOS-Tweaked/" CRAFTOSPC_VERSION " ComputerCraft/" CRAFTOSPC_CC_VERSION);
     try {
         session.sendRequest(request);
         std::istream& stream = session.receiveResponse(response);
@@ -1177,7 +1177,7 @@ static void websocket_client_thread(Computer *comp, const std::string& str, cons
     if (!config.http_proxy_server.empty()) cs->setProxy(config.http_proxy_server, config.http_proxy_port);
     HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
     for (std::pair<std::string, std::string> h : headers) request.set(h.first, h.second);
-    if (!request.has("User-Agent")) request.add("User-Agent", "computercraft/" CRAFTOSPC_CC_VERSION " CraftOS-PC/" CRAFTOSPC_VERSION);
+    if (!request.has("User-Agent")) request.add("User-Agent", "computercraft/" CRAFTOSPC_CC_VERSION " CraftOS-Tweaked/" CRAFTOSPC_VERSION);
     if (!request.has("Accept-Charset")) request.add("Accept-Charset", "UTF-8");
     HTTPResponse response;
     WebSocket* ws;

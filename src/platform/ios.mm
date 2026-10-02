@@ -1,6 +1,6 @@
 /*
  * platform/ios.mm
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements functions specific to iOS app binaries.
  * 
@@ -805,7 +805,7 @@ void handler(int sig) {
     size = backtrace(array, 25);
 
     // print out all the frames to stderr
-    fprintf(stderr, "Uh oh, CraftOS-PC has crashed! Reason: %s. Please report this to https://www.craftos-pc.cc/bugreport. Paste the following text under the 'Screenshots' section:\nOS: Mac (Application)\n", strsignal(sig));
+    fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. Please report this to https://www.craftos-pc.cc/bugreport. Paste the following text under the 'Screenshots' section:\nOS: Mac (Application)\n", strsignal(sig));
     backtrace_symbols_fd(array, size, STDERR_FILENO);
     signal(sig, NULL);
 }

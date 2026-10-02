@@ -1,6 +1,6 @@
 /*
  * platform.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines functions that have implementations that differ based on
  * the platform the program is built for.

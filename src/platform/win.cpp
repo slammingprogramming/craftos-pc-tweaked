@@ -1,6 +1,6 @@
 /*
  * platform/win.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements functions specific to Windows.
  * 
@@ -263,11 +263,11 @@ void copyImage(SDL_Surface* surf, SDL_Window* win) {
 }
 
 LONG WINAPI exceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
-    if (!loadingPlugin.empty()) MessageBoxA(NULL, std::string("Uh oh, CraftOS-PC has crashed! It appears the plugin \"" + loadingPlugin + "\" may have been responsible for this. Please remove it and try again. CraftOS-PC will now close.").c_str(), "Application Error", MB_OK | MB_ICONSTOP);
+    if (!loadingPlugin.empty()) MessageBoxA(NULL, std::string("Uh oh, CraftOS-Tweaked has crashed! It appears the plugin \"" + loadingPlugin + "\" may have been responsible for this. Please remove it and try again. CraftOS-Tweaked will now close.").c_str(), "Application Error", MB_OK | MB_ICONSTOP);
 #ifdef CRASHREPORT_API_KEY
-    else if (config.snooperEnabled) MessageBoxA(NULL, "Uh oh, CraftOS-PC has crashed! A crash log has been saved and will be uploaded on next launch. CraftOS-PC will now close.", "Application Error", MB_OK | MB_ICONSTOP);
+    else if (config.snooperEnabled) MessageBoxA(NULL, "Uh oh, CraftOS-Tweaked has crashed! A crash log has been saved and will be uploaded on next launch. CraftOS-Tweaked will now close.", "Application Error", MB_OK | MB_ICONSTOP);
 #endif
-    else MessageBoxA(NULL, std::string("Uh oh, CraftOS-PC has crashed! Please report this to https://www.craftos-pc.cc/bugreport. When writing the report, attach the latest CraftOS-PC.exe .dmp file located here (you can type this into the File Explorer): '%LOCALAPPDATA%\\CrashDumps'. Add this text to the report as well: \"Last C function: " + std::string(lastCFunction) + "\". CraftOS-PC will now close.").c_str(), "Application Error", MB_OK | MB_ICONSTOP);
+    else MessageBoxA(NULL, std::string("Uh oh, CraftOS-Tweaked has crashed! Please report this to https://www.craftos-pc.cc/bugreport. When writing the report, attach the latest CraftOS-PC.exe .dmp file located here (you can type this into the File Explorer): '%LOCALAPPDATA%\\CrashDumps'. Add this text to the report as well: \"Last C function: " + std::string(lastCFunction) + "\". CraftOS-Tweaked will now close.").c_str(), "Application Error", MB_OK | MB_ICONSTOP);
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
@@ -343,7 +343,7 @@ static bool pushCrashDump(const char * data, const size_t size, const path_t& pa
     Poco::Net::HTTPResponse response;
     session.setTimeout(Poco::Timespan(5000000));
     request.add("Host", uri.getHost());
-    request.add("User-Agent", "CraftOS-PC/" CRAFTOSPC_VERSION " ComputerCraft/" CRAFTOSPC_CC_VERSION);
+    request.add("User-Agent", "CraftOS-Tweaked/" CRAFTOSPC_VERSION " ComputerCraft/" CRAFTOSPC_CC_VERSION);
     request.add("X-API-Key", getAPIKey());
     request.add("x-amz-server-side-encryption", "AES256");
     request.setContentType("application/gzip");

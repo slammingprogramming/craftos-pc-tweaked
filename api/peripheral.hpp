@@ -1,6 +1,6 @@
 /*
  * peripheral.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file creates the base class for all peripherals to inherit.
  * 

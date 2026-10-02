@@ -62,13 +62,13 @@ if mode ~= "hardware" then
     if config.get("useHardwareRenderer") == true or config.get("debug_enable") == false then
         config.set("useHardwareRenderer", false)
         config.set("debug_enable", true)
-        print("Please quit and relaunch CraftOS-PC and try again.")
+        print("Please quit and relaunch CraftOS-Tweaked and try again.")
         return
     end
     term.setTextColor(colors.yellow)
     term.clear()
     term.setCursorPos(1, 1)
-    print("This program will test which renderer is best for your system. It will take about a minute to complete, and you will need to quit and relaunch CraftOS-PC mid-way through. It is recommended you close all other applications before starting to accurately gauge the performance of your system.\n\nPress enter to continue.")
+    print("This program will test which renderer is best for your system. It will take about a minute to complete, and you will need to quit and relaunch CraftOS-Tweaked mid-way through. It is recommended you close all other applications before starting to accurately gauge the performance of your system.\n\nPress enter to continue.")
     read()
     local score = runTests()
     local file = fs.open(".benchmark_results", "w")
@@ -83,7 +83,7 @@ if mode ~= "hardware" then
     term.setTextColor(colors.lightBlue)
     term.clear()
     term.setCursorPos(1, 1)
-    print("The software rendering portion of the test is complete. CraftOS-PC will now quit. Re-open CraftOS-PC to complete the test.\n\nPress enter to continie.")
+    print("The software rendering portion of the test is complete. CraftOS-Tweaked will now quit. Re-open CraftOS-Tweaked to complete the test.\n\nPress enter to continie.")
     read()
     os.shutdown()
 else
@@ -109,7 +109,7 @@ else
     term.setTextColor(colors.lightBlue)
     print("It is recommended that you use the " .. (swscore > score and "software" or "hardware") .. " renderer.")
     term.setTextColor(colors.yellow)
-    write("Would you like to set CraftOS-PC to use this renderer by default? (y/N) ")
+    write("Would you like to set CraftOS-Tweaked to use this renderer by default? (y/N) ")
     term.setTextColor(colors.white)
     local answer = read()
     if answer:sub(1, 1):upper() == "Y" then config.set("useHardwareRenderer", swscore < score) 

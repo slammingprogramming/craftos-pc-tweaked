@@ -1,6 +1,6 @@
 /*
  * apis.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  *
  * This file defines the library structures for all CraftOS APIs.
  *

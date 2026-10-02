@@ -1,6 +1,6 @@
 /*
  * Computer.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements the methods of the Computer class.
  * 
@@ -623,9 +623,9 @@ void runComputer(Computer * self, const path_t& bios_name, const std::string& bi
         lua_pushboolean(L, ::config.disable_lua51_features);
         lua_setglobal(L, "_CC_DISABLE_LUA51_FEATURES");
 #if CRAFTOSPC_INDEV == true && defined(CRAFTOSPC_COMMIT)
-        lua_pushstring(L, "ComputerCraft " CRAFTOSPC_CC_VERSION " (CraftOS-PC " CRAFTOSPC_VERSION "@" CRAFTOSPC_COMMIT ")");
+        lua_pushstring(L, "ComputerCraft " CRAFTOSPC_CC_VERSION " (CraftOS-Tweaked " CRAFTOSPC_VERSION "@" CRAFTOSPC_COMMIT ")");
 #else
-        lua_pushstring(L, "ComputerCraft " CRAFTOSPC_CC_VERSION " (CraftOS-PC " CRAFTOSPC_VERSION ")");
+        lua_pushstring(L, "ComputerCraft " CRAFTOSPC_CC_VERSION " (CraftOS-Tweaked " CRAFTOSPC_VERSION ")");
 #endif
         lua_setglobal(L, "_HOST");
         if (selectedRenderer == 1) {

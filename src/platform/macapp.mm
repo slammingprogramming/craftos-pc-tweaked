@@ -1,6 +1,6 @@
 /*
  * platform/macapp.mm
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements functions specific to macOS app binaries.
  * 
@@ -334,8 +334,8 @@ void handler(int sig) {
     size = backtrace(array, 25);
 
     // print out all the frames to stderr
-    if (!loadingPlugin.empty()) fprintf(stderr, "Uh oh, CraftOS-PC has crashed! Reason: %s. It appears the plugin \"%s\" may have been responsible for this. Please remove it and try again.\n", strsignal(sig), loadingPlugin.c_str());
-    else fprintf(stderr, "Uh oh, CraftOS-PC has crashed! Reason: %s. Please report this to https://www.craftos-pc.cc/bugreport. Paste the following text under the 'Screenshots' section:\nOS: Mac (Application)\nLast C function: %s\n", strsignal(sig), lastCFunction);
+    if (!loadingPlugin.empty()) fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. It appears the plugin \"%s\" may have been responsible for this. Please remove it and try again.\n", strsignal(sig), loadingPlugin.c_str());
+    else fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. Please report this to https://www.craftos-pc.cc/bugreport. Paste the following text under the 'Screenshots' section:\nOS: Mac (Application)\nLast C function: %s\n", strsignal(sig), lastCFunction);
     backtrace_symbols_fd(array, size, STDERR_FILENO);
     signal(sig, NULL);
 }

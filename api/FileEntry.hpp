@@ -1,6 +1,6 @@
 /*
  * FileEntry.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines a FileEntry class that holds data for virtual filesystems,
  * including the standalone ROM.

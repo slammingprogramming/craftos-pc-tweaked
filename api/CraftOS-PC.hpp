@@ -1,8 +1,8 @@
 /*
  * CraftOS-PC.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  *
- * This file is the main header for plugins to import CraftOS-PC's API.
+ * This file is the main header for plugins to import CraftOS-Tweaked's API.
  *
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
@@ -23,7 +23,7 @@
 
 /**
  * The PluginFunctions structure is used to hold all of the functions that a
- * plugin may use to interact with CraftOS-PC. This structure is passed (as a
+ * plugin may use to interact with CraftOS-Tweaked. This structure is passed (as a
  * constant pointer) to the `plugin_init` function.
  *
  * There are two different version fields in this structure. The first,
@@ -41,15 +41,15 @@
  *
  * Do NOT rely on any non-version-0 fields to exist without checking the
  * structure version. If you do this, users using your plugin on an old version
- * of CraftOS-PC will likely experience a segmentation fault/crash when the
+ * of CraftOS-Tweaked will likely experience a segmentation fault/crash when the
  * plugin attempts to load the non-existing function. Instead, you should check
  * that the structure version is compatible, and warn or error that the plugin
  * is incompatible with the current version (without crashing).
  *
- * Do note that if your plugin doesn't require any CraftOS-PC structures during
- * initialization, you can let CraftOS-PC handle version checks by returning an
+ * Do note that if your plugin doesn't require any CraftOS-Tweaked structures during
+ * initialization, you can let CraftOS-Tweaked handle version checks by returning an
  * info structure with the required versions filled in (see below). If the
- * version numbers don't match, CraftOS-PC will stop loading your plugin.
+ * version numbers don't match, CraftOS-Tweaked will stop loading your plugin.
  * However, this will not suffice if you need to access the structures in your
  * plugin_init.
  *
@@ -57,9 +57,9 @@
  * shorthand form to represent <abi_version>.<structure_version>.
  */
 struct PluginFunctions {
-    unsigned abi_version; ///< The plugin ABI version that is supported by this copy of CraftOS-PC. This version must **exactly** match your plugin's API version. You should check this version before doing anything else.
+    unsigned abi_version; ///< The plugin ABI version that is supported by this copy of CraftOS-Tweaked. This version must **exactly** match your plugin's API version. You should check this version before doing anything else.
     unsigned structure_version; ///< The version of the PluginFunctions, Computer, and configuration structures. Check this version before using any field that isn't available in version 0. This version must be equal to or greater than your plugin's minimum structure version.
-    const char * craftos_pc_version; ///< The version of CraftOS-PC that is loading the plugin.
+    const char * craftos_pc_version; ///< The version of CraftOS-Tweaked that is loading the plugin.
 
     // The following fields are available in API version 10.0. No structure version check is required to use these.
 
@@ -74,8 +74,8 @@ struct PluginFunctions {
     const configuration * config;
 
     /**
-     * Returns the path to the CraftOS-PC data root.
-     * @return The path to the CraftOS-PC data root.
+     * Returns the path to the CraftOS-Tweaked data root.
+     * @return The path to the CraftOS-Tweaked data root.
      */
     path_t (*getBasePath)();
 
@@ -219,7 +219,7 @@ struct PluginFunctions {
      * @param type The type of the setting: 0 for boolean, 1 for integer, 2 for string
      * @param callback A callback to call when the setting is changed. This
      * takes the name and userdata, and returns 0 for immediate use, 1 to
-     * reboot the computer, and 2 to restart CraftOS-PC before taking effect.
+     * reboot the computer, and 2 to restart CraftOS-Tweaked before taking effect.
      * Set this to nullptr to not call a function.
      * @param userdata An optional opaque pointer to pass to the function.
      */
@@ -313,9 +313,9 @@ struct PluginFunctions {
     /**
      * Sets the state of listener mode. Listener mode prevents any computers
      * from starting initially (when called from `plugin_init`), and prevents
-     * CraftOS-PC from stopping until listener mode is disabled. Disabling
+     * CraftOS-Tweaked from stopping until listener mode is disabled. Disabling
      * listener mode while no computers are running will immediately tell
-     * CraftOS-PC to quit.
+     * CraftOS-Tweaked to quit.
      * @param mode Whether listener mode is enabled
      */
     void (*setListenerMode)(bool mode);
@@ -409,12 +409,12 @@ DLLEXPORT void plugin_load(const PluginFunctions * func, const path_t& path);
 DLLEXPORT PluginInfo * plugin_init(const PluginFunctions * func, const path_t& path);
 
 // This function is called when deinitializing the plugin while preparing to quit
-// CraftOS-PC, before terminals have been shut down. It gives the plugin a chance
+// CraftOS-Tweaked, before terminals have been shut down. It gives the plugin a chance
 // to clean up any remaining resources, including deleting the `PluginInfo`
 // structure if it was dynamically allocated.
 DLLEXPORT void plugin_deinit(PluginInfo * info);
 
-// This function is called right before the plugin is unloaded, after CraftOS-PC
+// This function is called right before the plugin is unloaded, after CraftOS-Tweaked
 // finishes deinitializing everything else. It is recommended to use
 // `plugin_deinit` instead, but this function may be necessary under some
 // circumstances.

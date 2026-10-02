@@ -1,6 +1,6 @@
 /*
  * plugin.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  *
  * This file implements various functions relating to plugin loading on iOS.
  *
@@ -149,7 +149,7 @@ std::unordered_map<path_t, std::string> initializePlugins() {
             continue;
         }
         if (info->abi_version != PLUGIN_VERSION || info->minimum_structure_version > function_map.structure_version) {
-            failures[path] = "CraftOS-PC version too old";
+            failures[path] = "CraftOS-Tweaked version too old";
             fprintf(stderr, "Failed to load plugin at %s: This plugin requires a newer version of CraftOS-PC\n", path.string().c_str());
             const auto plugin_deinit = std::get<3>(plugin);
             if (plugin_deinit != NULL) plugin_deinit(info);

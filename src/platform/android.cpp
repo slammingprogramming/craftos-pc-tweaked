@@ -1,6 +1,6 @@
 /*
  * platform/android.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements functions specific to Android.
  * 

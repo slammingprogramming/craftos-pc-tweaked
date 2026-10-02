@@ -1,6 +1,6 @@
 # Authors and credits
 
-craftos-pc-tweaked is a fork of [CraftOS-PC 2](https://github.com/MCJack123/craftos2),
+CraftOS-Tweaked is a fork of [CraftOS-PC 2](https://github.com/MCJack123/craftos2),
 and it exists because of the work of everyone listed here. The original
 project was released under the MIT License; this fork is distributed under the
 GNU Affero General Public License v3.0 or later. The original MIT notice is

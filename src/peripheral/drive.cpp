@@ -1,6 +1,6 @@
 /*
  * peripheral/drive.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines the methods for the drive peripheral.
  * 

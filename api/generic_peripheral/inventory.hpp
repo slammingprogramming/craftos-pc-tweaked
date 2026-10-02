@@ -1,6 +1,6 @@
 /*
  * generic_peripheral/inventory.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines a generic peripheral class for inventory-type peripherals
  * to inherit from.

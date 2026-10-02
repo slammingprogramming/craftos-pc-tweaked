@@ -1,6 +1,6 @@
 /*
  * peripheral/debugger.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines the class for the debugger peripheral.
  * 

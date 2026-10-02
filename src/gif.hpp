@@ -1,6 +1,6 @@
 /*
  * gif.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  *
  * This file defines some functions from gif.cpp for external use.
  *

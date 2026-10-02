@@ -1,6 +1,6 @@
 /*
  * apis/mounter.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements the methods for the mounter API.
  * 

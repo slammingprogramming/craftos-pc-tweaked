@@ -1,6 +1,6 @@
 /*
  * platform/emscripten.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  *
  * This file implements functions specific to the Emscripten/WASM platform.
  *

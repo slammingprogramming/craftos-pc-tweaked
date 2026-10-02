@@ -1,5 +1,5 @@
 # New feature documentation
-This file provides documentation for the new APIs in CraftOS-PC.
+This file provides documentation for the new APIs in CraftOS-Tweaked.
 
 ## Creating new computers
 Computers can be created with `periphemu.create("computer_<id>", "computer")`, where `<id>` is the ID of the new computer. If a computer with the ID is already open, it will not create a new one. The `computer` peripheral for the new computer will also be attached.  
@@ -7,12 +7,12 @@ If the peripheral is detached with `periphemu.remove`, the peripheral will be de
 Computers can also be attached and detached from the shell when using the CraftOS ROM with `attach computer_<id> computer` and `detach computer_<id>`, respectively.
 
 ## Command line interface
-On supported systems, CraftOS-PC can be run from the terminal with the `--cli` flag. You can use Shift+Arrow Keys to change the currently open window. In this mode, some features are not supported, including:
+On supported systems, CraftOS-Tweaked can be run from the terminal with the `--cli` flag. You can use Shift+Arrow Keys to change the currently open window. In this mode, some features are not supported, including:
 * Holding keys: CLI mode cannot detect key releases, and thus sends both a `key` and `key_up` event at the same time. Because of this, it cannot detect if you are holding any keys down.
-* Using modifier keys: CLI mode cannot detect pressing modifier keys, so CraftOS-PC works around that by using the Home key as Control and the End key as Alt. To send Home/End to CraftOS, hold down Shift while pressing the key.
+* Using modifier keys: CLI mode cannot detect pressing modifier keys, so CraftOS-Tweaked works around that by using the Home key as Control and the End key as Alt. To send Home/End to CraftOS, hold down Shift while pressing the key.
 
 ## Using custom fonts
-The font used for CraftOS-PC can be changed in `<save dir>/config/global.json`, with the `customFontPath` option. To set the font, set `customFontPath` to the absolute path to a BMP file containing the font glyphs. Each glyph must be exactly 6*s* x 9*s* px with 2*s* pixels between each glyph, where *s* is a number representing the scale of the font. `customFontScale` must also be set to a number representing the size of the font (1 = HD font (12x18), 2 = normal font (6x9), 3 = 1/2 size font (4x6)).
+The font used for CraftOS-Tweaked can be changed in `<save dir>/config/global.json`, with the `customFontPath` option. To set the font, set `customFontPath` to the absolute path to a BMP file containing the font glyphs. Each glyph must be exactly 6*s* x 9*s* px with 2*s* pixels between each glyph, where *s* is a number representing the scale of the font. `customFontScale` must also be set to a number representing the size of the font (1 = HD font (12x18), 2 = normal font (6x9), 3 = 1/2 size font (4x6)).
 
 For example, if the CCEmuX `hdfont.bmp` is placed at `/usr/share/craftos/hdfont.bmp`, we can add this to `global.json`:
 ```json
@@ -124,19 +124,19 @@ HTTP server extension in the `http` API.
 * server_stop: Send this inside an `http.listen()` callback to stop the server
 
 ## Plugin API
-CraftOS-PC 2 features a new plugin API that allows easy addition of new C APIs into the environment. 
+CraftOS-Tweaked features a new plugin API that allows easy addition of new C APIs into the environment. 
 A plugin consists of a shared library (`.dll`, `.dylib`, `.so`) that contains a function named `luaopen_<name>`, where `<name>` is the filename of the plugin.
 Upon loading a new computer, the `plugins` folder inside the install directory is scanned for plugins to load.
-For each plugin found, CraftOS-PC loads and calls the plugin's `luaopen` function. This function should have the same signature as a `lua_CFunction`:
+For each plugin found, CraftOS-Tweaked loads and calls the plugin's `luaopen` function. This function should have the same signature as a `lua_CFunction`:
 ```
 int luaopen_plugin(lua_State *L);
 ```
 The function will recieve the ROM path and the base path, and should return one value: the API that will be exported to the global table.  
-Plugins must also have an exported function named `version`, which tells CraftOS-PC what version of the API it's using.
+Plugins must also have an exported function named `version`, which tells CraftOS-Tweaked what version of the API it's using.
 As of v2.2, the version is currently `2`. You can use the template `version` function in the example below.
 If this version number changes, make sure to update the version in your plugin and recompile to ensure full compatibility.
 
-If your plugin needs access to the CraftOS-PC `Computer` object, copy the `get_comp(L)` function in `lib.cpp`.
+If your plugin needs access to the CraftOS-Tweaked `Computer` object, copy the `get_comp(L)` function in `lib.cpp`.
 This function takes in a `lua_State` and returns a pointer to the `Computer` object associated with it.
 You can then access the properties of the computer.
 The `Computer` object also has a userdata property that allows temporary per-computer storage if necessary.  

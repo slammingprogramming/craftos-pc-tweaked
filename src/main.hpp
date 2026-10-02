@@ -1,9 +1,9 @@
 /*
  * main.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  *
  * This file defines variables used on the command line that may be used by
- * other CraftOS-PC components.
+ * other CraftOS-Tweaked components.
  *
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.

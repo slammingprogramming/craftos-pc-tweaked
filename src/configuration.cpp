@@ -1,6 +1,6 @@
 /*
  * configuration.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  *
  * This file implements functions for interacting with the configuration.
  *

@@ -1,6 +1,6 @@
 /*
  * util.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  *
  * This file defines some common functions used by various parts of the program.
  *

@@ -1,6 +1,6 @@
 /*
  * apis/config.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements the methods for the config API.
  * 
@@ -21,7 +21,7 @@
 #define setConfigSetting(n, type) else if (strcmp(name, #n) == 0) config.n = lua_to##type(L, 2)
 #define setConfigSettingI(n) else if (strcmp(name, #n) == 0) config.n = luaL_checkinteger(L, 2)
 
-static const char * config_set_action_names[3] = {"", "The changes will take effect after rebooting the computer.", "The changes will take effect after restarting CraftOS-PC."};
+static const char * config_set_action_names[3] = {"", "The changes will take effect after rebooting the computer.", "The changes will take effect after restarting CraftOS-Tweaked."};
 
 static int config_get(lua_State *L) {
     lastCFunction = __func__;

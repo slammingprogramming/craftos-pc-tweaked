@@ -1,9 +1,9 @@
 /*
  * ccemux.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file creates a new CCEmuX API for backwards-compatibility with CCEmuX
- * programs when run in CraftOS-PC.
+ * programs when run in CraftOS-Tweaked.
  * 
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
@@ -112,10 +112,10 @@ Closes the current emulated computer, without affecting the others. Can be calle
 Opens a new emulated computer, with the given ID (if specified) or with the next ID. Can be called from within programs via ccemux.openEmu() or ccemux.openEmu(id)\n\
 \n\
 * emu data\n\
-This will open the CraftOS-PC data dir (where config files and computer save folders are stored) in your default file browser. Can be called from within programs via ccemux.openDataDir(). Note that it may fail on some Linux systems (i.e. if you don't have a DE installed)\n\
+This will open the CraftOS-Tweaked data dir (where config files and computer save folders are stored) in your default file browser. Can be called from within programs via ccemux.openDataDir(). Note that it may fail on some Linux systems (i.e. if you don't have a DE installed)\n\
 \n\
 * emu config\n\
-Opens an interface to edit the CraftOS-PC configuration. Note that not all rendering backends support this."}}}, {"autorun", {{"emu.lua", "-- Setup completion functions\n\
+Opens an interface to edit the CraftOS-Tweaked configuration. Note that not all rendering backends support this."}}}, {"autorun", {{"emu.lua", "-- Setup completion functions\n\
 local function completeMultipleChoice(text, options, addSpaces)\n\
     local tResults = {}\n\
     for n = 1, #options do\n\

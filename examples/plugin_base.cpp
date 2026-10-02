@@ -1,6 +1,6 @@
 /*
  * plugin_base.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file can be used as a template for new plugins.
  *

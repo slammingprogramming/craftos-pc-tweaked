@@ -1,6 +1,6 @@
 /*
  * platform.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file controls which platform implementation will be compiled.
  * 

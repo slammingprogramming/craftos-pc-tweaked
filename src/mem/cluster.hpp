@@ -1,6 +1,6 @@
 /*
  * mem/cluster.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines the class for the cluster allocator.
  * 

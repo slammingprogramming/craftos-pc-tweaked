@@ -1,6 +1,6 @@
 /*
  * main.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file handles command-line flags, sets up the runtime, and starts the
  * first computer.
@@ -169,7 +169,7 @@ static void update_thread() {
         HTTPRequest request(HTTPRequest::HTTP_GET, "/repos/MCJack123/craftos2/releases/latest", HTTPMessage::HTTP_1_1);
         HTTPResponse response;
         session.setTimeout(Poco::Timespan(5000000));
-        request.add("User-Agent", "CraftOS-PC/" CRAFTOSPC_VERSION " ComputerCraft/" CRAFTOSPC_CC_VERSION);
+        request.add("User-Agent", "CraftOS-Tweaked/" CRAFTOSPC_VERSION " ComputerCraft/" CRAFTOSPC_CC_VERSION);
         session.sendRequest(request);
         Poco::JSON::Parser parser;
         parser.parse(session.receiveResponse(response));
@@ -185,7 +185,7 @@ static void update_thread() {
             msg.flags = SDL_MESSAGEBOX_INFORMATION;
             msg.window = NULL;
             msg.title = "Update available!";
-            const std::string message = (std::string("A new update to CraftOS-PC is available (") + root->getValue<std::string>("tag_name") + " is the latest version, you have " CRAFTOSPC_VERSION "). Would you like to update to the latest version?");
+            const std::string message = (std::string("A new update to CraftOS-Tweaked is available (") + root->getValue<std::string>("tag_name") + " is the latest version, you have " CRAFTOSPC_VERSION "). Would you like to update to the latest version?");
             msg.message = message.c_str();
             msg.numbuttons = 3;
             msg.buttons = buttons;
@@ -260,7 +260,7 @@ static void update_thread() {
                     config_save();
                 }
                 return NULL;
-            }, (void*)(std::string("A new update to CraftOS-PC is available (") + root->getValue<std::string>("tag_name") + " is the latest version, you have " CRAFTOSPC_VERSION "). Go to " + root->getValue<std::string>("html_url") + " to download the new version.").c_str());
+            }, (void*)(std::string("A new update to CraftOS-Tweaked is available (") + root->getValue<std::string>("tag_name") + " is the latest version, you have " CRAFTOSPC_VERSION "). Go to " + root->getValue<std::string>("html_url") + " to download the new version.").c_str());
 #endif
         }
     } catch (Poco::Exception &e) {
@@ -502,12 +502,12 @@ static void migrateData(bool forced) {
         if (!msg.empty()) {
             fprintf(stderr, "Some errors occurred while copying CCEmuX data:\n%s", msg.c_str());
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Migration Failure", "Some files failed to be copied while migrating from CCEmuX. Check the console to see what failed.\n", NULL);
-        } else if (forced) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Migration Success", "The migration of CCEmuX data to CraftOS-PC has completed successfully.", NULL);
+        } else if (forced) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Migration Success", "The migration of CCEmuX data to CraftOS-Tweaked has completed successfully.", NULL);
     }
 }
 
 #ifdef WINDOWS_SUBSYSTEM
-#define checkTTY() {SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unsupported command-line argument", "This build of CraftOS-PC does not support console input/output, which is required for one or more arguments passed to CraftOS-PC. Please use CraftOS-PC_console.exe instead, as this supports console I/O. If it is not present in the install directory, please reinstall CraftOS-PC with the console build option enabled.", NULL); return 5;}
+#define checkTTY() {SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unsupported command-line argument", "This build of CraftOS-Tweaked does not support console input/output, which is required for one or more arguments passed to CraftOS-Tweaked. Please use CraftOS-PC_console.exe instead, as this supports console I/O. If it is not present in the install directory, please reinstall CraftOS-Tweaked with the console build option enabled.", NULL); return 5;}
 #else
 #define checkTTY() 
 #endif
@@ -677,7 +677,7 @@ int parseArguments(const std::vector<std::string>& argv) {
             }
         } else if (arg == "-V" || arg == "--version") {
             checkTTY();
-            std::cout << "CraftOS-PC " << CRAFTOSPC_VERSION;
+            std::cout << "CraftOS-Tweaked " << CRAFTOSPC_VERSION;
 #if CRAFTOSPC_INDEV == true && defined(CRAFTOSPC_COMMIT)
             std::cout << " (commit " << CRAFTOSPC_COMMIT << ")";
 #endif
@@ -761,7 +761,7 @@ int main(int argc, char*argv[]) {
     if (res >= 0) return res;
 #ifdef NO_CLI
     if (selectedRenderer == 2) {
-        std::cerr << "Warning: CraftOS-PC was not built with CLI support, but the --cli flag was specified anyway. Continuing in GUI mode.\n";
+        std::cerr << "Warning: CraftOS-Tweaked was not built with CLI support, but the --cli flag was specified anyway. Continuing in GUI mode.\n";
         selectedRenderer = 0;
     }
 #endif
@@ -799,7 +799,7 @@ int main(int argc, char*argv[]) {
             if (uri.getPathAndQuery().empty()) uri.setPath("/");
             if (!config.http_proxy_server.empty()) cs->setProxy(config.http_proxy_server, config.http_proxy_port);
             HTTPRequest request(HTTPRequest::HTTP_GET, uri.getPathAndQuery(), HTTPMessage::HTTP_1_1);
-            request.add("User-Agent", "computercraft/" CRAFTOSPC_CC_VERSION " CraftOS-PC/" CRAFTOSPC_VERSION);
+            request.add("User-Agent", "computercraft/" CRAFTOSPC_CC_VERSION " CraftOS-Tweaked/" CRAFTOSPC_VERSION);
             request.add("Accept-Charset", "UTF-8");
             HTTPResponse response;
             WebSocket* ws;
@@ -876,8 +876,8 @@ int main(int argc, char*argv[]) {
         if (factory) factory->init();
         else SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO);
     } catch (std::exception &e) {
-        if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to initialize renderer", ("An error occurred while initializing the renderer: " + std::string(e.what()) + ". See https://www.craftos-pc.cc/docs/error-messages for more info. CraftOS-PC will now close").c_str(), NULL);
-        else fprintf(stderr, "An error occurred while initializing the renderer: %s. See https://www.craftos-pc.cc/docs/error-messages for more info. CraftOS-PC will now close.\n", e.what());
+        if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to initialize renderer", ("An error occurred while initializing the renderer: " + std::string(e.what()) + ". See https://www.craftos-pc.cc/docs/error-messages for more info. CraftOS-Tweaked will now close").c_str(), NULL);
+        else fprintf(stderr, "An error occurred while initializing the renderer: %s. See https://www.craftos-pc.cc/docs/error-messages for more info. CraftOS-Tweaked will now close.\n", e.what());
         SDL_Quit();
         return 2;
     }
@@ -894,7 +894,7 @@ int main(int argc, char*argv[]) {
     if (onboardingMode == 1 && !config.snooperEnabled && (selectedRenderer == 0 || selectedRenderer == 5)) {
         SDL_MessageBoxData data;
         data.title = "Allow analytics?";
-        data.message = "CraftOS-PC can automatically upload crash logs to help bugs get fixed. These files are sent anonymously and don't contain direct personal data, but they do include general system information (see https://www.craftos-pc.cc/docs/privacy for more info). Would you like to allow crash logs to be uploaded?";
+        data.message = "CraftOS-Tweaked can automatically upload crash logs to help bugs get fixed. These files are sent anonymously and don't contain direct personal data, but they do include general system information (see https://www.craftos-pc.cc/docs/privacy for more info). Would you like to allow crash logs to be uploaded?";
         data.colorScheme = NULL;
         data.window = NULL;
         data.flags = SDL_MESSAGEBOX_INFORMATION;
@@ -919,7 +919,7 @@ int main(int argc, char*argv[]) {
         mainLoop();
     } catch (Poco::Exception &e) {
         fprintf(stderr, "Uncaught exception on main thread: %s\n", e.displayText().c_str());
-        if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", ("Uh oh, CraftOS-PC has crashed! Please report this to https://www.craftos-pc.cc/bugreport. When writing the report, include the following exception message: \"Poco exception on main thread: " + e.displayText() + "\". CraftOS-PC will now close.").c_str(), NULL);
+        if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", ("Uh oh, CraftOS-Tweaked has crashed! Please report this to https://www.craftos-pc.cc/bugreport. When writing the report, include the following exception message: \"Poco exception on main thread: " + e.displayText() + "\". CraftOS-Tweaked will now close.").c_str(), NULL);
         for (Computer * c : *computers) {
             c->running = 0;
             c->event_lock.notify_all();
@@ -928,7 +928,7 @@ int main(int argc, char*argv[]) {
         awaitTasks([]()->bool {return computers.locked() || !computers->empty() || !taskQueue->empty();});
     } catch (std::exception &e) {
         fprintf(stderr, "Uncaught exception on main thread: %s\n", e.what());
-        if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", (std::string("Uh oh, CraftOS-PC has crashed! Please report this to https://www.craftos-pc.cc/bugreport. When writing the report, include the following exception message: \"Exception on main thread: ") + e.what() + "\". CraftOS-PC will now close.").c_str(), NULL);
+        if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", (std::string("Uh oh, CraftOS-Tweaked has crashed! Please report this to https://www.craftos-pc.cc/bugreport. When writing the report, include the following exception message: \"Exception on main thread: ") + e.what() + "\". CraftOS-Tweaked will now close.").c_str(), NULL);
         for (Computer * c : *computers) {
             c->running = 0;
             c->event_lock.notify_all();

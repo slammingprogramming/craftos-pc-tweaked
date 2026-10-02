@@ -1,6 +1,6 @@
 /*
  * terminal/SDLTerminal.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements the SDLTerminal class.
  * 

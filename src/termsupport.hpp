@@ -1,6 +1,6 @@
 /*
  * termsupport.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines some functions that interact with the terminal.
  * 

@@ -1,6 +1,6 @@
 /*
  * terminal/HardwareSDLTerminal.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements the HardwareSDLTerminal class.
  * 

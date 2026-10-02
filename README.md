@@ -1,11 +1,13 @@
-# CraftOS-PC 2 [![Actions Status](https://github.com/MCJack123/craftos2/workflows/CI/badge.svg)](https://github.com/MCJack123/craftos2/actions)
-A rewrite of [CraftOS-PC (Classic)](https://github.com/MCJack123/craftos) using C++ and a modified version of PUC Lua, as well as SDL for drawing.
+# CraftOS-Tweaked [![Actions Status](https://github.com/slammingprogramming/craftos-pc-tweaked/workflows/CI/badge.svg)](https://github.com/slammingprogramming/craftos-pc-tweaked/actions)
+CraftOS-Tweaked is a ComputerCraft emulator written in C++, using a modified version of PUC Lua and SDL for drawing. It is being adapted for [CC: Tweaked](https://github.com/cc-tweaked/CC-Tweaked).
 
-> **craftos-pc-tweaked** is a hard fork of [CraftOS-PC 2](https://github.com/MCJack123/craftos2) by JackMacWindows (MCJack123), being adapted for CC: Tweaked. Many thanks to the original author and all contributors; see [AUTHORS.md](AUTHORS.md). Installation sources and links below still refer to the upstream project unless noted otherwise.
-
-Visit the website at https://www.craftos-pc.cc/ for more information, including documentation.
+> CraftOS-Tweaked is a hard fork of [CraftOS-PC 2](https://github.com/MCJack123/craftos2) by JackMacWindows (MCJack123), which is itself a rewrite of [CraftOS-PC (Classic)](https://github.com/MCJack123/craftos). Many thanks to the original author and all contributors; see [AUTHORS.md](AUTHORS.md).
 
 ![Screenfetch](resources/image1.png)
+
+> **Note:** Parts of this README (the installation instructions, package names, download links and website below) were written for upstream CraftOS-PC 2 and have not been updated yet. CraftOS-Tweaked does not have its own packages or website yet; to try it, build from source.
+
+The upstream CraftOS-PC 2 website, https://www.craftos-pc.cc/, has more information, including documentation that largely still applies.
 
 ## Requirements for released builds
 * Supported operating systems:
@@ -165,8 +167,10 @@ The solution has a few different build configurations:
 9. `./craftos`
 
 ## FAQ
+*This FAQ is carried over from the original CraftOS-PC 2 README and is written in its author's voice; "CraftOS-PC" below refers to the original project.*
+
 ### Why is the ComputerCraft ROM/BIOS not included with the source?
-ComputerCraft and its assets are licensed under a copyleft license that requires anything using its code to be under the same license. Since I want CraftOS-PC 2 to remain under only the MIT license, I will not be distributing any original ComputerCraft files with the CraftOS-PC 2 source. You can still aquire the ROM [separately](https://github.com/MCJack123/craftos2-rom).
+ComputerCraft and its assets are distributed under their own licenses, which are separate from this project's, so the original ComputerCraft ROM/BIOS files are not included with the source. You can acquire the ROM [separately](https://github.com/MCJack123/craftos2-rom).
 
 ### Why did you choose C++?
 Since the original ComputerCraft code is written in Java, it may seem like a better idea to create an emulator based on the original mod code. But I found that using native C++ lets the emulator run much better than if it was in Java.
@@ -184,4 +188,4 @@ Using the same language that Lua uses guarantees compatibility with the base API
 I wanted to keep CraftOS-PC Classic's wide compatibility in CraftOS-PC 2. Using other languages such as C# or Swift are platform-dependent and are not guaranteed to work on any platform. C++ is a basic language that's always present and maintains a portable library that works on all platforms. I've moved all platform-specific code into the platform_*.cpp files so the rest of the code can remain as independent as possible.
 
 ## License
-craftos-pc-tweaked is licensed under the [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL-3.0-or-later). It is a fork of CraftOS-PC 2, which was released under the MIT License; the original MIT notice and copyright are preserved in [LICENSE](LICENSE), and credits are listed in [AUTHORS.md](AUTHORS.md). If you run a modified version as a network service, the AGPL requires you to offer its source to your users.
+CraftOS-Tweaked is licensed under the [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL-3.0-or-later). It is a fork of CraftOS-PC 2, which was released under the MIT License; the original MIT notice and copyright are preserved in [LICENSE](LICENSE), and credits are listed in [AUTHORS.md](AUTHORS.md). If you run a modified version as a network service, the AGPL requires you to offer its source to your users.

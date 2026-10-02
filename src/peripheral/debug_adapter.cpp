@@ -1,6 +1,6 @@
 /*
  * peripheral/debug_adapter.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements the Debug Adapter Protocol connection.
  * 

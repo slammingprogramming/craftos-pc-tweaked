@@ -1,6 +1,6 @@
 /*
  * peripheral/tank.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines the class for the tank peripheral.
  * 

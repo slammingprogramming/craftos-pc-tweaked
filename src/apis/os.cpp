@@ -1,6 +1,6 @@
 /*
  * apis/os.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  *
  * This file implements the functions for the os API.
  *
@@ -350,7 +350,7 @@ static int os_reboot(lua_State *L) {
 
 static int os_about(lua_State *L) {
     lastCFunction = __func__;
-    lua_pushstring(L, "CraftOS-PC " CRAFTOSPC_VERSION "\n\n\
+    lua_pushstring(L, "CraftOS-Tweaked " CRAFTOSPC_VERSION "\n\n\
 This program is free software, licensed under the GNU Affero General Public\n\
 License, version 3 or (at your option) any later version (AGPL-3.0-or-later).\n\
 It comes with ABSOLUTELY NO WARRANTY. The complete corresponding source code is\n\

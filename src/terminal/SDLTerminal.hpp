@@ -1,6 +1,6 @@
 /*
  * terminal/SDLTerminal.hpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file defines the SDLTerminal class, which is the default renderer.
  * 

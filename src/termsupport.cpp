@@ -1,6 +1,6 @@
 /*
  * termsupport.cpp
- * CraftOS-PC 2
+ * CraftOS-Tweaked
  * 
  * This file implements some helper functions for terminal interaction.
  * 
@@ -592,7 +592,7 @@ static bool renderTerminal(Terminal * term, bool& pushEvent) {
         fprintf(stderr, "Warning: Render on term %d threw an error: %s (%d)\n", term->id, ex.what(), term->errorcount);
         if (term->errorcount++ > 10) {
             term->errorcount = 0;
-            term->showMessage(SDL_MESSAGEBOX_ERROR, "Error rendering terminal", std::string(std::string("An error repeatedly occurred while attempting to render the terminal: ") + ex.what() + ". This is likely a bug in CraftOS-PC. Please go to https://www.craftos-pc.cc/bugreport and report this issue. The window will now close. Please note that CraftOS-PC may be left in an invalid state - you should restart the emulator.").c_str());
+            term->showMessage(SDL_MESSAGEBOX_ERROR, "Error rendering terminal", std::string(std::string("An error repeatedly occurred while attempting to render the terminal: ") + ex.what() + ". This is likely a bug in CraftOS-Tweaked. Please go to https://www.craftos-pc.cc/bugreport and report this issue. The window will now close. Please note that CraftOS-Tweaked may be left in an invalid state - you should restart the emulator.").c_str());
             SDL_Event e;
             e.type = SDL_WINDOWEVENT;
             e.window.event = SDL_WINDOWEVENT_CLOSE;
@@ -1096,7 +1096,7 @@ void displayFailure(Terminal * term, const std::string& message, const std::stri
         memcpy(term->screen.data() + offset, extra.c_str(), min(extra.size(), (size_t)term->width));
         offset *= 2;
     }
-    strcpy((char*)term->screen.data() + offset, "CraftOS-PC may be installed incorrectly");
+    strcpy((char*)term->screen.data() + offset, "CraftOS-Tweaked may be installed incorrectly");
     term->canBlink = false;
     term->errorMode = true;
     term->changed = true;
