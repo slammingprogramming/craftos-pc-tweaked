@@ -1,0 +1,20 @@
+diff --git a/src/lstrlib.c b/src/lstrlib.c
+index f38dad6..1db6580 100644
+--- a/src/lstrlib.c
++++ b/src/lstrlib.c
+@@ -408,6 +408,15 @@ static const char *match_capture (MatchState *ms, const char *s, int l) {
+ 
+ 
+ static const char *match (MatchState *ms, const char *s, const char *p) {
++  if (G(ms->L)->haltstate) {  /* CraftOS-Tweaked: the computer was told to stop (e.g. it ran too long without yielding) */
++    const char *msg = G(ms->L)->haltstate == 2 && G(ms->L)->haltmessage ? G(ms->L)->haltmessage : "halted";
++    if (G(ms->L)->haltstate == 2) {  /* an error that code can catch; a full halt stays set */
++      G(ms->L)->haltstate = 0;
++      G(ms->L)->haltmessage = NULL;
++    }
++    lua_pushstring(ms->L, msg);
++    lua_error(ms->L);
++  }
+   if (ms->matchdepth-- == 0)
+     luaL_error(ms->L, "pattern too complex");
+   init: /* using goto's to optimize tail recursion */

@@ -51,21 +51,7 @@ std::list<path_t> customPlugins;
 std::list<std::tuple<std::string, std::string, int> > customMounts;
 std::unordered_set<Terminal*> orphanedTerminals;
 
-// Context structure for yieldable load
-struct load_ctx {
-    int id;
-    std::thread thread;
-    std::mutex lock;
-    std::condition_variable notify;
-    int oldtop;
-    int status;
-    int argcount;
-    int envidx;
-    lua_State *L;
-    lua_State *coro;
-    const char * name;
-    const char * mode;
-};
+
 
 // Structure for memory allocators
 struct allocators {
@@ -222,94 +208,72 @@ static const char * file_reader(lua_State *L, void * ud, size_t *size) {
     return file_read_tmp;
 }
 
-// These functions implement a strategy for allowing `load` to yield.
-// Basically, it spins up a new thread that runs the actual parser, and
-// when the function yields, the thread signals the computer thread to
-// yield itself. Once the computer thread resumes loading, the contents
-// are sent to the loader thread, and parsing continues. This continues
-// until the loader finishes, at which point the loader signals the
-// computer thread that it's done. The results are copied back to the
-// main state, and the loader returns.
+// `load` that lets its reader function yield, as it can in CC: Tweaked. The pieces the reader returns are collected
+// (the reader is called with lua_callk, so it may yield the computer's coroutine), and the chunk is compiled once the
+// reader signals the end. Stack: 1 = reader, 2 = chunk name, 3 = mode, 4 = environment, 5 = the pieces.
 
-std::vector<load_ctx*> load_ctx_stack; // since Lua 5.2+ stores context as ints, we can't store a pointer -
-                                       // instead, all pointers are placed in this vector and the context is an offset here
-                                       // (maybe we can store a stack index instead?)
-
-static const char * yield_loader(lua_State *L, void* data, size_t *size) {
-    load_ctx* ctx = (load_ctx*)data;
-    lua_State *coro = lua_newthread(L);
-    lua_pushvalue(ctx->coro, 1);
-    lua_xmove(ctx->coro, coro, 1);
-    ctx->argcount = 0;
-    int status;
-    do {
-        status = lua_resume(coro, ctx->coro, ctx->argcount);
-        if (status == 0) {
-            if (lua_isnoneornil(coro, 1)) return NULL;
-            else if (lua_isstring(coro, 1)) return lua_tolstring(coro, 1, size);
-            else luaL_error(L, "reader function must return a string");
-        } else if (status == LUA_YIELD) {
-            std::unique_lock<std::mutex> lock(ctx->lock);
-            ctx->status = 1;
-            ctx->argcount = lua_gettop(coro);
-            lua_xmove(coro, ctx->L, ctx->argcount);
-            ctx->notify.notify_all();
-            while (ctx->status == 1) ctx->notify.wait(lock);
-            if (ctx->status == 3) luaL_error(L, "");
-            lua_xmove(ctx->L, coro, ctx->argcount);
-            ctx->status = 0;
-        } else {
-            lua_error(L);
+// Handles the value the reader just returned (on top of the stack). Returns -1 to call the reader again, otherwise the
+// number of values to return from load.
+static int yieldable_load_piece(lua_State *L) {
+    const int type = lua_type(L, -1);
+    if (type == LUA_TNIL || (type == LUA_TSTRING && lua_rawlen(L, -1) == 0)) { // the end of the chunk
+        lua_pop(L, 1);
+        luaL_Buffer buffer;
+        luaL_buffinit(L, &buffer);
+        for (int i = 1, n = (int)lua_rawlen(L, 5); i <= n; i++) {
+            lua_rawgeti(L, 5, i);
+            luaL_addvalue(&buffer);
         }
-    } while (status == LUA_YIELD);
-    return NULL;
+        luaL_pushresult(&buffer);
+        size_t size;
+        const char * chunk = lua_tolstring(L, -1, &size);
+        if (luaL_loadbufferx(L, chunk, size, luaL_optstring(L, 2, "=(load)"), luaL_optstring(L, 3, "bt")) == LUA_OK) {
+            if (!lua_isnil(L, 4)) {
+                lua_pushvalue(L, 4); // the environment of the loaded function
+                if (!lua_setupvalue(L, -2, 1)) lua_pop(L, 1);
+            }
+            return 1;
+        }
+        lua_pushnil(L);
+        lua_insert(L, -2); // nil goes before the error message
+        return 2;
+    } else if (type == LUA_TSTRING || type == LUA_TNUMBER) {
+        lua_rawseti(L, 5, (int)lua_rawlen(L, 5) + 1);
+        return -1;
+    }
+    lua_pushnil(L);
+    lua_pushliteral(L, "reader function must return a string");
+    return 2;
 }
 
-static void load_thread(load_ctx* ctx) {
-    int status = lua_load(ctx->coro, yield_loader, ctx, ctx->name, NULL);
-    if (ctx->status == 3) return;
-    std::unique_lock<std::mutex> lock(ctx->lock);
-    if (status == 0) {
-        ctx->argcount = 1;
-        lua_xmove(ctx->coro, ctx->L, 1);
-    } else {
-        ctx->argcount = 2;
-        lua_pushnil(ctx->L);
-        lua_xmove(ctx->coro, ctx->L, 1);
+static int yieldable_load_k(lua_State *L);
+static int yieldable_load_run(lua_State *L) {
+    while (true) {
+        lua_pushvalue(L, 1);
+        const int status = lua_pcallk(L, 0, 1, 0, 0, yieldable_load_k);
+        if (status != LUA_OK) { // an error in the reader makes load return nil and the message, like Lua's load
+            lua_pushnil(L);
+            lua_insert(L, -2);
+            return 2;
+        }
+        const int results = yieldable_load_piece(L);
+        if (results >= 0) return results;
     }
-    ctx->status = 2;
-    ctx->notify.notify_all();
 }
 
-static int load_ctx_gc(lua_State *L) {
-    load_ctx* ctx = (load_ctx*)lua_touserdata(L, 1);
-    if (ctx->thread.joinable()) {
-        {
-            std::unique_lock<std::mutex> lock(ctx->lock);
-            ctx->status = 3;
-            ctx->notify.notify_all();
-        }
-        ctx->thread.join();
+static int yieldable_load_k(lua_State *L) { // the reader yielded and was resumed (or failed after that)
+    int ctx;
+    if (lua_getctx(L, &ctx) != LUA_YIELD) { // an error
+        lua_pushnil(L);
+        lua_insert(L, -2);
+        return 2;
     }
-    load_ctx_stack[ctx->id] = NULL;
-    while (!load_ctx_stack.empty() && load_ctx_stack[load_ctx_stack.size()-1] == NULL) load_ctx_stack.erase(load_ctx_stack.end()-1);
-    ctx->thread.~thread();
-    ctx->lock.~mutex();
-    ctx->notify.~condition_variable();
-    return 0;
+    const int results = yieldable_load_piece(L);
+    return results >= 0 ? results : yieldable_load_run(L);
 }
 
 static int yieldable_load(lua_State *L) {
-    load_ctx* ctx;
-    int ctxid = 0;
-    if (lua_getctx(L, &ctxid) == LUA_YIELD) {
-        ctx = load_ctx_stack[ctxid];
-        std::unique_lock<std::mutex> lock(ctx->lock);
-        ctx->status = 0;
-        ctx->L = L;
-        ctx->argcount = lua_gettop(L) - ctx->argcount;
-        ctx->notify.notify_all();
-    } else if (lua_isstring(L, 1)) {
+    if (lua_isstring(L, 1)) {
         size_t l;
         const char *s = lua_tolstring(L, 1, &l);
         const char *mode = luaL_optstring(L, 3, "bt");
@@ -328,48 +292,11 @@ static int yieldable_load(lua_State *L) {
             lua_insert(L, -2);  /* put before error message */
             return 2;  /* return nil plus error message */
         }
-    } else {
-        luaL_checktype(L, 1, LUA_TFUNCTION);
-        const char * name = luaL_optstring(L, 2, "=(load)");
-        load_ctx * basectx = new load_ctx;
-        ctx = (load_ctx*)lua_newuserdata(L, sizeof(load_ctx));
-        memcpy(ctx, basectx, sizeof(load_ctx));
-        delete basectx;
-        lua_createtable(L, 0, 1);
-        lua_pushcfunction(L, load_ctx_gc);
-        lua_setfield(L, -2, "__gc");
-        lua_setmetatable(L, -2);
-        ctx->thread = std::thread(load_thread, ctx);
-        setThreadName(ctx->thread, "Loader Thread: " + std::string(name));
-        ctx->status = 0;
-        ctx->name = name;
-        ctx->mode = luaL_optstring(L, 3, "bt");
-        ctx->envidx = lua_isnoneornil(L, 4) ? 0 : 4;
-        ctx->L = L;
-        ctx->coro = lua_newthread(L);
-        for (; ctxid < load_ctx_stack.size(); ctxid++)
-            if (load_ctx_stack[ctxid] == NULL) break;
-        if (ctxid == load_ctx_stack.size()) load_ctx_stack.push_back(ctx);
-        else load_ctx_stack[ctxid] = ctx;
-        ctx->id = ctxid;
-        lua_pushvalue(L, 1);
-        lua_xmove(L, ctx->coro, 1);
     }
-    while (ctx->status != 2) {
-        std::unique_lock<std::mutex> lock(ctx->lock);
-        ctx->notify.wait(lock);
-        if (ctx->status == 1) {
-            int argcount = ctx->argcount;
-            ctx->argcount = lua_gettop(L) - ctx->argcount;
-            return lua_yieldk(L, argcount, ctxid, yieldable_load);
-        } else if (ctx->status == 3) return 0; // this should never happen
-    }
-    if (ctx->argcount == 1 && ctx->envidx != 0) {  /* OK? */
-        lua_pushvalue(L, ctx->envidx);  /* environment for loaded function */
-        if (!lua_setupvalue(L, -2, 1))  /* set it as 1st upvalue */
-            lua_pop(L, 1);  /* remove 'env' if not used by previous call */
-    }
-    return ctx->argcount;
+    luaL_checktype(L, 1, LUA_TFUNCTION);
+    lua_settop(L, 4);
+    lua_newtable(L); // the pieces (index 5)
+    return yieldable_load_run(L);
 }
 
 #if defined(__ANDROID__) || defined(__IPHONEOS__)
@@ -937,7 +864,8 @@ void* computerThread(void* data) {
             if (selectedRenderer == 1) returnValue = 1;
         }
         first = false;
-    } while ((config.keepOpenOnShutdown || config.standardsMode) && !comp->requestedExit);
+    // CC: Tweaked's computers stay on screen (turned off) after a shutdown; headless and terminal runs just end
+    } while ((config.keepOpenOnShutdown || (config.standardsMode && selectedRenderer != 1 && selectedRenderer != 2)) && !comp->requestedExit);
     {
         LockGuard lock(computers);
         freedComputers.insert(comp);

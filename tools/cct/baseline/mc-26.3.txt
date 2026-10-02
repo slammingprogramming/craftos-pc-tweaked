@@ -13,13 +13,13 @@ spec/apis/rednet_spec.lua PASS 21 21
 spec/apis/redstone_spec.lua PASS 15 15
 spec/apis/settings_spec.lua PASS 31 31
 spec/apis/term_spec.lua PASS 2 2
-spec/apis/textutils_spec.lua FAIL 348 346
+spec/apis/textutils_spec.lua PASS 348 348
 spec/apis/vector_spec.lua PASS 12 12
 spec/apis/window_spec.lua PASS 18 18
 spec/base_spec.lua PASS 11 11
 spec/lua/call_spec.lua PASS 1 1
 spec/lua/coroutine_spec.lua PASS 14 14
-spec/lua/timeout_spec.lua TIMEOUT 0 0
+spec/lua/timeout_spec.lua PASS 3 3
 spec/lua/vm_spec.lua PASS 1 1
 spec/modules/cc/audio/dfpwm_spec.lua PASS 2 2
 spec/modules/cc/base64_spec.lua PASS 8 8

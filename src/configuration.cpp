@@ -98,6 +98,11 @@ void setComputerConfig(int id, const computer_configuration& cfg) {
 #define readConfigSetting(name, type) if (root.isMember(#name)) config.name = root[#name].as##type()
 
 bool configLoadError = false;
+bool standardsModeExplicit = false;
+
+void applyDefaultStandardsMode() {
+    if (!standardsModeExplicit) config.standardsMode = activeROMVersion().ccTweaked;
+}
 
 // first: 0 = immediate, 1 = reboot, 2 = relaunch
 // second: 0 = boolean, 1 = number, 2 = string, 3 = string array
@@ -325,6 +330,7 @@ void config_init() {
         readConfigSetting(monitorsUseMouseEvents, Bool);
         readConfigSetting(defaultWidth, Int);
         readConfigSetting(defaultHeight, Int);
+        if (root.isMember("standardsMode")) standardsModeExplicit = true;
         readConfigSetting(standardsMode, Bool);
 #if !(defined(__IPHONEOS__) || defined(__ANDROID__))
         readConfigSetting(useHardwareRenderer, Bool);
@@ -414,7 +420,7 @@ void config_save() {
     root["monitorsUseMouseEvents"] = config.monitorsUseMouseEvents;
     root["defaultWidth"] = config.defaultWidth;
     root["defaultHeight"] = config.defaultHeight;
-    root["standardsMode"] = config.standardsMode;
+    if (standardsModeExplicit) root["standardsMode"] = config.standardsMode; // otherwise the ROM decides (see applyDefaultStandardsMode)
     root["useHardwareRenderer"] = config.useHardwareRenderer;
     root["preferredHardwareDriver"] = config.preferredHardwareDriver;
     root["useVsync"] = config.useVsync;

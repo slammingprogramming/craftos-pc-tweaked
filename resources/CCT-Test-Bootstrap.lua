@@ -10,7 +10,6 @@
 -- The optional argument is a spec file or folder inside the mounted test-rom (default: everything, /test-rom/spec).
 -- The emulator exits with the number of failing tests, or 255 if the run did not finish.
 local arg = ...
-config.set("abortTimeout", 3000) -- to speed things up a bit
 config.set("computerSpaceLimit", 10000000) -- CC: Tweaked's fs tests expect a finite, but large, limit
 config.add("http_blacklist", "$private")
 if arg == "debugger" then
@@ -18,7 +17,6 @@ if arg == "debugger" then
     peripheral.call("left", "break")
     arg = nil
 end
-config.set("standardsMode", true) -- CC: Tweaked's limits (7 second timeout, computer space, ...) only apply in this mode
 for _,v in ipairs(fs.list("/")) do if not fs.isReadOnly(v) then fs.delete(v) end end
 -- CC: Tweaked's own test computer has a /startup.lua, which some fs specs use as an example file
 local startup = assert(fs.open("startup.lua", "w"))
@@ -54,5 +52,4 @@ local log = assert(io.open("test-log.txt", "r"))
 local text = log:read("*a")
 log:close()
 local ran, passed = text:match("Ran (%d+) test%(s%), of which (%d+) passed")
-config.set("standardsMode", false) -- in this mode the computer would restart instead of letting the emulator exit
 if ran then os.shutdown(tonumber(ran) - tonumber(passed)) else os.shutdown(255) end

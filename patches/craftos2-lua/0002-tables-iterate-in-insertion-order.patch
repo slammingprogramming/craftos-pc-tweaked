@@ -1,0 +1,161 @@
+diff --git a/src/lobject.h b/src/lobject.h
+index e4dbe24..56c112e 100644
+--- a/src/lobject.h
++++ b/src/lobject.h
+@@ -556,6 +556,8 @@ typedef union TKey {
+ typedef struct Node {
+   TValue i_val;
+   TKey i_key;
++  int ordnext;  /* CraftOS-Tweaked: index of the node inserted after this one (-1 = none) */
++  int ordprev;  /* ... and of the one inserted before it */
+ } Node;
+ 
+ 
+@@ -567,6 +569,8 @@ typedef struct Table {
+   TValue *array;  /* array part */
+   Node *node;
+   Node *lastfree;  /* any free position is before this position */
++  int ordfirst;  /* CraftOS-Tweaked: first and last node in insertion order, so that `next' visits */
++  int ordlast;  /* hash keys in the order they were added (like CC: Tweaked's VM, which is deterministic too) */
+   struct Table *metatable;
+   GCObject *gclist;
+ } Table;
+diff --git a/src/ltable.c b/src/ltable.c
+index 4f90865..0ab21f0 100644
+--- a/src/ltable.c
++++ b/src/ltable.c
+@@ -70,7 +70,8 @@
+ 
+ static const Node dummynode_ = {
+   {NILCONSTANT},  /* value */
+-  {{NILCONSTANT, NULL}}  /* key */
++  {{NILCONSTANT, NULL}},  /* key */
++  -1, -1  /* insertion order links */
+ };
+ 
+ 
+@@ -168,17 +169,22 @@ static int findindex (lua_State *L, Table *t, StkId key) {
+ 
+ int luaH_next (lua_State *L, Table *t, StkId key) {
+   int i = findindex(L, t, key);  /* find original element */
+-  for (i++; i < t->sizearray; i++) {  /* try first array part */
+-    if (!ttisnil(&t->array[i])) {  /* a non-nil value? */
+-      setnvalue(key, cast_num(i+1));
+-      setobj2s(L, key+1, &t->array[i]);
+-      return 1;
++  int n;  /* next node, in insertion order */
++  if (i < t->sizearray) {  /* at the start, or inside the array part */
++    for (i++; i < t->sizearray; i++) {
++      if (!ttisnil(&t->array[i])) {  /* a non-nil value? */
++        setnvalue(key, cast_num(i+1));
++        setobj2s(L, key+1, &t->array[i]);
++        return 1;
++      }
+     }
++    n = isdummy(t->node) ? -1 : t->ordfirst;  /* then the hash part */
+   }
+-  for (i -= t->sizearray; i < sizenode(t); i++) {  /* then hash part */
+-    if (!ttisnil(gval(gnode(t, i)))) {  /* a non-nil value? */
+-      setobj2s(L, key, gkey(gnode(t, i)));
+-      setobj2s(L, key+1, gval(gnode(t, i)));
++  else n = gnode(t, i - t->sizearray)->ordnext;
++  for (; n >= 0; n = gnode(t, n)->ordnext) {
++    if (!ttisnil(gval(gnode(t, n)))) {  /* a non-nil value? */
++      setobj2s(L, key, gkey(gnode(t, n)));
++      setobj2s(L, key+1, gval(gnode(t, n)));
+       return 1;
+     }
+   }
+@@ -292,12 +298,14 @@ static void setnodevector (lua_State *L, Table *t, int size) {
+     for (i=0; i<size; i++) {
+       Node *n = gnode(t, i);
+       gnext(n) = NULL;
++      n->ordnext = n->ordprev = -1;
+       setnilvalue(gkey(n));
+       setnilvalue(gval(n));
+     }
+   }
+   t->lsizenode = cast_byte(lsize);
+   t->lastfree = gnode(t, size);  /* all positions are free */
++  t->ordfirst = t->ordlast = -1;  /* no insertion order yet */
+ }
+ 
+ 
+@@ -306,6 +314,7 @@ void luaH_resize (lua_State *L, Table *t, int nasize, int nhsize) {
+   int oldasize = t->sizearray;
+   int oldhsize = t->lsizenode;
+   Node *nold = t->node;  /* save old hash ... */
++  int oldordfirst = t->ordfirst;  /* ... and where its insertion order starts */
+   if (nasize > oldasize)  /* array part must grow? */
+     setarrayvector(L, t, nasize);
+   /* create new hash part with appropriate size */
+@@ -320,13 +329,16 @@ void luaH_resize (lua_State *L, Table *t, int nasize, int nhsize) {
+     /* shrink array */
+     luaM_reallocvector(L, t->array, oldasize, nasize, TValue);
+   }
+-  /* re-insert elements from hash part */
+-  for (i = twoto(oldhsize) - 1; i >= 0; i--) {
+-    Node *old = nold+i;
+-    if (!ttisnil(gval(old))) {
+-      /* doesn't need barrier/invalidate cache, as entry was
+-         already present in the table */
+-      setobjt2t(L, luaH_set(L, t, gkey(old)), gval(old));
++  /* re-insert elements from hash part, oldest first so that the insertion order survives */
++  {
++    int j;
++    for (j = isdummy(nold) ? -1 : oldordfirst; j >= 0; j = nold[j].ordnext) {
++      Node *old = nold+j;
++      if (!ttisnil(gval(old))) {
++        /* doesn't need barrier/invalidate cache, as entry was
++           already present in the table */
++        setobjt2t(L, luaH_set(L, t, gkey(old)), gval(old));
++      }
+     }
+   }
+   if (!isdummy(nold))
+@@ -404,10 +416,13 @@ static Node *getfreepos (Table *t) {
+ */
+ TValue *luaH_newkey (lua_State *L, Table *t, const TValue *key) {
+   Node *mp;
++  int stale;
+   if (ttisnil(key)) luaG_runerror(L, "table index is nil");
+   else if (ttisnumber(key) && luai_numisnan(L, nvalue(key)))
+     luaG_runerror(L, "table index is NaN");
+   mp = mainposition(t, key);
++  /* a main position that is free but still holds a removed key is still linked into the insertion order */
++  stale = !isdummy(mp) && ttisnil(gval(mp)) && !ttisnil(gkey(mp));
+   if (!ttisnil(gval(mp)) || isdummy(mp)) {  /* main position is taken? */
+     Node *othern;
+     Node *n = getfreepos(t);  /* get a free place */
+@@ -423,7 +438,13 @@ TValue *luaH_newkey (lua_State *L, Table *t, const TValue *key) {
+       while (gnext(othern) != mp) othern = gnext(othern);  /* find previous */
+       gnext(othern) = n;  /* redo the chain with `n' in place of `mp' */
+       *n = *mp;  /* copy colliding node into free pos. (mp->next also goes) */
++      {  /* the moved node keeps its place in the insertion order */
++        int ni = cast_int(n - t->node);
++        if (n->ordprev >= 0) gnode(t, n->ordprev)->ordnext = ni; else t->ordfirst = ni;
++        if (n->ordnext >= 0) gnode(t, n->ordnext)->ordprev = ni; else t->ordlast = ni;
++      }
+       gnext(mp) = NULL;  /* now `mp' is free */
++      mp->ordnext = mp->ordprev = -1;
+       setnilvalue(gval(mp));
+     }
+     else {  /* colliding node is in its own main position */
+@@ -436,6 +457,17 @@ TValue *luaH_newkey (lua_State *L, Table *t, const TValue *key) {
+   setobj2t(L, gkey(mp), key);
+   luaC_barrierback(L, obj2gco(t), key);
+   lua_assert(ttisnil(gval(mp)));
++  {  /* the new key goes last in the insertion order */
++    int mi = cast_int(mp - t->node);
++    if (stale) {  /* leave the place of the key that was removed */
++      if (mp->ordprev >= 0) gnode(t, mp->ordprev)->ordnext = mp->ordnext; else t->ordfirst = mp->ordnext;
++      if (mp->ordnext >= 0) gnode(t, mp->ordnext)->ordprev = mp->ordprev; else t->ordlast = mp->ordprev;
++    }
++    mp->ordnext = -1;
++    mp->ordprev = t->ordlast;
++    if (t->ordlast >= 0) gnode(t, t->ordlast)->ordnext = mi; else t->ordfirst = mi;
++    t->ordlast = mi;
++  }
+   return gval(mp);
+ }
+ 

@@ -19,7 +19,7 @@ spec/apis/window_spec.lua PASS 18 18
 spec/base_spec.lua PASS 11 11
 spec/lua/call_spec.lua PASS 1 1
 spec/lua/coroutine_spec.lua PASS 14 14
-spec/lua/timeout_spec.lua TIMEOUT 0 0
+spec/lua/timeout_spec.lua PASS 3 3
 spec/lua/vm_spec.lua PASS 1 1
 spec/modules/cc/audio/dfpwm_spec.lua PASS 2 2
 spec/modules/cc/base64_spec.lua PASS 8 8

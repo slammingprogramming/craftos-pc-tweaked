@@ -16,6 +16,7 @@ on:
       - "roms/**"
       - "roms-overlay/**"
       - "tools/**"
+      - "patches/**"
       - "src/**"
       - "api/**"
       - ".github/workflows/*"
@@ -35,6 +36,7 @@ on:
       - "roms/**"
       - "roms-overlay/**"
       - "tools/**"
+      - "patches/**"
       - "src/**"
       - "api/**"
       - ".github/workflows/*"
@@ -87,6 +89,9 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
+    - name: Patch the modified Lua
+      shell: bash
+      run: tools/apply-lua-patches.sh
     - name: Install dependencies
       run: |
         if [ "${{ matrix.id }}" = "basic" ]; then
@@ -182,6 +187,9 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
+    - name: Patch the modified Lua
+      shell: bash
+      run: tools/apply-lua-patches.sh
     - name: Get the CC Tweaked sources that match the ROM
       run: |
         COMMIT="$(python3 -c "import json;print(json.load(open('roms/${{ matrix.id }}/rom-info.json'))['upstream_commit'])")"
@@ -219,6 +227,9 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
+    - name: Patch the modified Lua
+      shell: bash
+      run: tools/apply-lua-patches.sh
     - name: Restore vcpkg cache
       uses: lukka/run-vcpkg@v11
       with:
@@ -309,6 +320,9 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
+    - name: Patch the modified Lua
+      shell: bash
+      run: tools/apply-lua-patches.sh
     - name: Restore vcpkg cache
       uses: lukka/run-vcpkg@v11
       with:

@@ -693,7 +693,8 @@ static void readROMInfo(std::istream& in, ROMVersion& v) {
         if (info->has("upstream_branch")) v.upstreamBranch = info->getValue<std::string>("upstream_branch");
         if (info->has("upstream_commit")) v.upstreamCommit = info->getValue<std::string>("upstream_commit");
         // A ROM that came from CC: Tweaked uses GLFW key codes; "key_codes" can say otherwise ("lwjgl" or "glfw")
-        v.glfwKeys = info->has("computercraft_version");
+        v.ccTweaked = info->has("computercraft_version");
+        v.glfwKeys = v.ccTweaked;
         if (info->has("key_codes")) v.glfwKeys = info->getValue<std::string>("key_codes") == "glfw";
     } catch (...) {}
 }

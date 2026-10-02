@@ -222,6 +222,7 @@ struct ROMVersion {
     std::string minecraftVersion;   // e.g. "1.20.1" ("" if unknown)
     std::string upstreamBranch;     // CC: Tweaked branch the ROM came from
     std::string upstreamCommit;     // and the commit
+    bool ccTweaked = false;         // the ROM is CC: Tweaked's (it has a rom-info.json that names a CC: Tweaked version)
     bool glfwKeys = false;          // key events carry GLFW key codes (every CC: Tweaked since 1.109) instead of LWJGL 2 ones
 };
 extern std::vector<path_t> romSearchDirectories();                          // folders that may contain "roms"
@@ -274,6 +275,8 @@ extern struct computer_configuration getComputerConfig(int id);
 extern void setComputerConfig(int id, const computer_configuration& cfg);
 extern void config_init();
 extern void config_save();
+extern bool standardsModeExplicit;                                          // standardsMode was set by the user (config file, -o or config.set), so it is not chosen by the ROM
+extern void applyDefaultStandardsMode();                                    // standardsMode defaults to on for CC: Tweaked ROMs and off for others
 extern void xcopy(lua_State *from, lua_State *to, int n);
 extern std::string makeASCIISafe(const char * retval, size_t len);
 extern bool matchIPClass(const std::string& address, const std::string& pattern);

@@ -632,7 +632,7 @@ static void setConfigOption(const char * name, const char * value) {
     setConfigSettingB(monitorsUseMouseEvents);
     setConfigSettingI(defaultWidth);
     setConfigSettingI(defaultHeight);
-    setConfigSettingB(standardsMode);
+    else if (strcmp(name, "standardsMode") == 0) {config.standardsMode = strcasecmp(value, "true") == 0; standardsModeExplicit = true;}
     setConfigSettingB(useHardwareRenderer);
     else if (strcmp(name, "preferredHardwareDriver") == 0)
         config.preferredHardwareDriver = value;
@@ -871,6 +871,7 @@ int main(int argc, char*argv[]) {
     if (selectedRenderer == -1) selectedRenderer = config.useHardwareRenderer ? 5 : 0;
     if (!cliCCVersion.empty()) config.ccVersion = cliCCVersion; // for this session only; not saved
     selectROMForSession();
+    applyDefaultStandardsMode();
     if (rawClient) {
         if (!rawWebSocketURL.empty()) {
             Poco::URI uri;
