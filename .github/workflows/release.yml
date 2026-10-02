@@ -1,15 +1,28 @@
-name: Release
-
-# When a GitHub Release is published, build every platform with the CI
-# workflow and attach the packaged results (plus SHA-256 hashes) to the release.
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (c) 2026 slammingprogramming
+# Based on the release workflow of CraftOS-PC 2, Copyright (c) 2019-2024 JackMacWindows (MIT License).
+#
+# Pushing a version tag (v*) builds every platform with the CI workflow, creates
+# the GitHub Release if it does not exist yet, and attaches the packaged
+# results plus SHA-256 hashes to it.
+#
+#   git tag v2.8.4-tweaked.1 && git push origin v2.8.4-tweaked.1
+#
+# This deliberately does not trigger on the "release published" event: releases
+# created with the default GITHUB_TOKEN (by this or any other workflow) do not
+# start new workflow runs, so a tag push is the reliable trigger. A run can also
+# be started by hand from the Actions tab by choosing the tag as the ref.
 #
 # Not handled here (yet): macOS/iOS/Android builds, Windows installers, and
-# distro packages (PPA, AUR, Homebrew, ...). The old upstream pipeline for those
-# depended on the upstream maintainer's secrets and package repositories.
+# distro packages. See TODO.md.
+
+name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -21,14 +34,18 @@ env:
 jobs:
   build:
     name: Build
+    if: ${{ github.ref_type == 'tag' }}
     uses: ./.github/workflows/main.yml
 
   package:
-    name: Package and upload
+    name: Package and publish
     needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      TAG: ${{ github.ref_name }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
     - uses: actions/checkout@v4
     - name: Install tools
@@ -47,7 +64,7 @@ jobs:
         mkdir -p stage-common
         SUBMODULE="$(git ls-tree HEAD craftos2-lua | awk '{print $3}')"
         cat > stage-common/SOURCE.txt <<EOF
-        CraftOS-Tweaked ${{ github.event.release.tag_name }}
+        CraftOS-Tweaked ${TAG}
 
         This program is licensed under the GNU Affero General Public License,
         version 3 or later. The complete corresponding source code for this
@@ -80,27 +97,27 @@ jobs:
       run: |
         stage=CraftOS-Tweaked-linux-x86_64
         mkdir -p "$stage/bin" "$stage/lib" "$stage/share/craftos"
-        cp artifacts/CraftOS-Tweaked-linux-x64/craftos "$stage/bin/craftos"
+        cp artifacts/CraftOS-Tweaked-linux-x64/craftos-tweaked "$stage/bin/craftos-tweaked"
         cp artifacts/CraftOS-Tweaked-linux-x64/craftos2-lua/src/liblua.so "$stage/lib/libcraftos2-lua.so"
-        chmod +x "$stage/bin/craftos"
+        chmod +x "$stage/bin/craftos-tweaked"
         # The build links the Lua library by relative path; make it relocatable
-        patchelf --replace-needed craftos2-lua/src/liblua.so libcraftos2-lua.so "$stage/bin/craftos"
-        patchelf --set-rpath '$ORIGIN/../lib' "$stage/bin/craftos"
-        readelf -d "$stage/bin/craftos" | grep -E 'NEEDED|RPATH|RUNPATH'
-        if readelf -d "$stage/bin/craftos" | grep -q 'craftos2-lua/src'; then
+        patchelf --replace-needed craftos2-lua/src/liblua.so libcraftos2-lua.so "$stage/bin/craftos-tweaked"
+        patchelf --set-rpath '$ORIGIN/../lib' "$stage/bin/craftos-tweaked"
+        readelf -d "$stage/bin/craftos-tweaked" | grep -E 'NEEDED|RPATH|RUNPATH'
+        if readelf -d "$stage/bin/craftos-tweaked" | grep -q 'craftos2-lua/src'; then
           echo "::error::Lua library path was not rewritten"; exit 1
         fi
         cp rom/bios.lua rom/hdfont.bmp "$stage/share/craftos/"
         cp -R rom/rom rom/debug "$stage/share/craftos/"
         cp stage-common/* "$stage/"
-        cat > "$stage/craftos" <<'EOF'
+        cat > "$stage/craftos-tweaked" <<'EOF'
         #!/bin/sh
         DIR="$(dirname "$(readlink -f "$0")")"
-        exec "$DIR/bin/craftos" --rom "$DIR/share/craftos" "$@"
+        exec "$DIR/bin/craftos-tweaked" --rom "$DIR/share/craftos" "$@"
         EOF
-        chmod +x "$stage/craftos"
+        chmod +x "$stage/craftos-tweaked"
         cat > "$stage/README-linux.txt" <<'EOF'
-        Run ./craftos to start CraftOS-Tweaked.
+        Run ./craftos-tweaked to start CraftOS-Tweaked.
 
         This build was made on Ubuntu (ubuntu-latest) and uses system libraries.
         On Debian/Ubuntu you can install everything it needs with:
@@ -113,11 +130,17 @@ jobs:
         tar -czf CraftOS-Tweaked-Linux-x86_64.tar.gz "$stage"
     - name: Generate hashes
       run: sha256sum CraftOS-Tweaked-*.zip CraftOS-Tweaked-*.tar.gz | tee sha256-hashes.txt
-    - name: Upload release assets
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create release if needed
       run: |
-        gh release upload "${{ github.event.release.tag_name }}" \
+        PRERELEASE=
+        case "$TAG" in *-*) PRERELEASE=--prerelease ;; esac
+        if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+          gh release create "$TAG" --repo "${{ github.repository }}" --verify-tag \
+            --title "CraftOS-Tweaked $TAG" --generate-notes $PRERELEASE
+        fi
+    - name: Upload release assets
+      run: |
+        gh release upload "$TAG" \
           CraftOS-Tweaked-Portable-Win64.zip \
           CraftOS-Tweaked-Portable-WinARM64.zip \
           CraftOS-Tweaked-Linux-x86_64.tar.gz \

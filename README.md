@@ -133,15 +133,15 @@ macOS, iOS and Android builds, Windows installers and distro packages are not bu
 #### Windows
 1. Download [Visual Studio 2019](https://visualstudio.microsoft.com/) if not already installed
 2. `git submodule update --init --recursive`
-3. Open `CraftOS-PC 2.sln` with VS
+3. Open `CraftOS-Tweaked.sln` with VS
 4. Build solution
 5. Copy all files from the ROM into the same directory as the new executable (ex. `craftos2\x64\Release`)
 6. Run solution
 
 The solution has a few different build configurations:
 * Debug: for debugging, no optimization
-* Release: standard Windows application build with optimization (same as installed `CraftOS-PC.exe`)
-* ReleaseC: same as Release but with console support (same as installed `CraftOS-PC_console.exe`)
+* Release: standard Windows application build with optimization (same as `CraftOS-Tweaked.exe` in releases)
+* ReleaseC: same as Release but with console support (same as `CraftOS-Tweaked_console.exe` in releases)
 * ReleaseStandalone: same as Release but builds a standalone build; requires `fs_standalone.cpp` to be present in `src`
 
 #### Mac
@@ -152,10 +152,10 @@ The solution has a few different build configurations:
 5. `./configure`
 6. `make macapp`
 7. Open the repository in a new Finder window
-8. Right click on CraftOS-PC.app => Show Package Contents
+8. Right click on CraftOS-Tweaked.app => Show Package Contents
 9. Open Contents -> Resources
 10. Copy the ROM package inside
-11. Run CraftOS-PC.app
+11. Run CraftOS-Tweaked.app
 
 #### Linux (or Mac as non-app binary)
 1. Open a new terminal
@@ -166,7 +166,7 @@ The solution has a few different build configurations:
 6. `make`
 7. `sudo mkdir /usr/local/share/craftos`
 8. Copy the ComputerCraft ROM into `/usr/local/share/craftos/`
-9. `./craftos`
+9. `./craftos-tweaked`
 
 ## FAQ
 *This FAQ is carried over from the original CraftOS-PC 2 README and is written in its author's voice; "CraftOS-PC" below refers to the original project.*
@@ -190,4 +190,8 @@ Using the same language that Lua uses guarantees compatibility with the base API
 I wanted to keep CraftOS-PC Classic's wide compatibility in CraftOS-PC 2. Using other languages such as C# or Swift are platform-dependent and are not guaranteed to work on any platform. C++ is a basic language that's always present and maintains a portable library that works on all platforms. I've moved all platform-specific code into the platform_*.cpp files so the rest of the code can remain as independent as possible.
 
 ## License
-CraftOS-Tweaked is licensed under the [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL-3.0-or-later). It is a fork of CraftOS-PC 2, which was released under the MIT License; the original MIT notice and copyright are preserved in [LICENSE](LICENSE), and credits are listed in [AUTHORS.md](AUTHORS.md). If you run a modified version as a network service, the AGPL requires you to offer its source to your users.
+Copyright (c) 2026 slammingprogramming, and (c) 2019-2024 JackMacWindows for the original CraftOS-PC 2.
+
+CraftOS-Tweaked is licensed under the [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL-3.0-or-later). Where the AGPL is not applicable (documentation and other non-software content, like this README), it is licensed under [CC BY-SA 4.0](LICENSE). It is a fork of CraftOS-PC 2, which was released under the MIT License; the original MIT notice and copyright are preserved in [LICENSE](LICENSE), and credits are listed in [AUTHORS.md](AUTHORS.md). If you run a modified version as a network service, the AGPL requires you to offer its source to your users.
+
+See [TODO.md](TODO.md) for the project's open to-do list, including things the maintainer still needs to set up.

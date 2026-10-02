@@ -6,6 +6,7 @@
  * 
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Copyright (c) 2026 slammingprogramming.
  * Originally released under the MIT License; see the LICENSE file.
  */
 
@@ -54,6 +55,8 @@ path_t rom_path = "/usr/share/craftos";
 #ifdef FS_ROOT
 const char * base_path = "";
 #else
+// TODO(slammingprogramming): data and ROM locations still use the upstream "CraftOS-PC"/"craftos" names so existing
+// saves keep working. They are to be changed to match CC: Tweaked, with a migration step (see TODO.md).
 const char * base_path = "$XDG_DATA_HOME/craftos-pc";
 #endif
 path_t base_path_expanded;
@@ -562,7 +565,7 @@ void crit_err_hdlr(int sig_num, siginfo_t * info, void * ucontext) {
 #error Unsupported architecture. // TODO: Add support for other arch.
 #endif
     if (!loadingPlugin.empty()) fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. It appears the plugin \"%s\" may have been responsible for this. Please remove it and try again.\n", strsignal(sig_num), loadingPlugin.c_str());
-    else fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s (%d). Please report this to https://www.craftos-pc.cc/bugreport. Paste the following text under the 'Screenshots' section:\n", strsignal(sig_num), sig_num);
+    else fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s (%d). Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". Include the following text in your report:\n", strsignal(sig_num), sig_num);
     fprintf(stderr, "OS: Linux\nAddress is %p from %p\nLast C function: %s\n", info->si_addr, (void *)caller_address, lastCFunction);
     size = backtrace(array, 25);
     /* overwrite sigaction with caller's address */

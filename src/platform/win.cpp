@@ -6,6 +6,7 @@
  * 
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Copyright (c) 2026 slammingprogramming.
  * Originally released under the MIT License; see the LICENSE file.
  */
 
@@ -37,6 +38,8 @@
 #include "../platform.hpp"
 #include "../util.hpp"
 
+// TODO(slammingprogramming): data and ROM locations still use the upstream "CraftOS-PC"/"craftos" names so existing
+// saves keep working. They are to be changed to match CC: Tweaked, with a migration step (see TODO.md).
 const wchar_t * base_path = L"%appdata%\\CraftOS-PC";
 path_t base_path_expanded;
 path_t rom_path_expanded;
@@ -88,20 +91,22 @@ static std::string makeSize(double n) {
 }
 
 void updateNow(const std::string& tagname, const Poco::JSON::Object::Ptr root) {
-    // If a delta update in the form "CraftOS-PC-Setup_Delta-v2.x.y.exe" is available, use that instead of the full installer
+    // If a delta update in the form "CraftOS-Tweaked-Setup_Delta-v2.x.y.exe" is available, use that instead of the full installer
     // "v2.x.y" indicates the oldest version that can update from this installer
-    std::string assetName = "CraftOS-PC-Setup.exe";
+    // NOTE: only used when built with CRAFTOSTWEAKED_AUTOUPDATE (see main.cpp); releases don't ship installers yet.
+    const std::string deltaPrefix = "CraftOS-Tweaked-Setup_Delta-v";
+    std::string assetName = "CraftOS-Tweaked-Setup.exe";
     Poco::JSON::Array::Ptr assets = root->getArray("assets");
     for (auto it = assets->begin(); it != assets->end(); it++) {
         Poco::JSON::Object::Ptr obj = it->extract<Poco::JSON::Object::Ptr>();
         std::string name = obj->getValue<std::string>("name");
-        if (name.substr(0, 24) == "CraftOS-PC-Setup_Delta-v") {
-            std::string tag = name.substr(23, name.size() - 27);
+        if (name.compare(0, deltaPrefix.size(), deltaPrefix) == 0) {
+            std::string tag = name.substr(deltaPrefix.size() - 1, name.size() - deltaPrefix.size() - 3); // "v2.x.y", without ".exe"
             if (strcmp(tag.c_str(), CRAFTOSPC_VERSION) <= 0) assetName = name;
             break;
         }
     }
-    HTTPDownload("https://github.com/MCJack123/craftos2/releases/download/" + tagname + "/sha256-hashes.txt", [tagname, &assetName](std::istream * shain, Poco::Exception * e, Poco::Net::HTTPResponse * res){
+    HTTPDownload("https://github.com/" CRAFTOSTWEAKED_REPO "/releases/download/" + tagname + "/sha256-hashes.txt", [tagname, &assetName](std::istream * shain, Poco::Exception * e, Poco::Net::HTTPResponse * res){
         if (e != NULL) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Update Error", std::string("An error occurred while downloading the update: " + e->displayText()).c_str(), NULL);
             return;
@@ -117,7 +122,7 @@ void updateNow(const std::string& tagname, const Poco::JSON::Object::Ptr root) {
             return;
         }
         std::string hash = line.substr(0, 64);
-        HTTPDownload("https://github.com/MCJack123/craftos2/releases/download/" + tagname + "/" + assetName, [&hash](std::istream * in, Poco::Exception * e, Poco::Net::HTTPResponse * res) {
+        HTTPDownload("https://github.com/" CRAFTOSTWEAKED_REPO "/releases/download/" + tagname + "/" + assetName, [&hash](std::istream * in, Poco::Exception * e, Poco::Net::HTTPResponse * res) {
             if (e != NULL) {
                 SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Update Error", std::string("An error occurred while downloading the update: " + e->displayText()).c_str(), NULL);
                 return;
@@ -267,7 +272,7 @@ LONG WINAPI exceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
 #ifdef CRASHREPORT_API_KEY
     else if (config.snooperEnabled) MessageBoxA(NULL, "Uh oh, CraftOS-Tweaked has crashed! A crash log has been saved and will be uploaded on next launch. CraftOS-Tweaked will now close.", "Application Error", MB_OK | MB_ICONSTOP);
 #endif
-    else MessageBoxA(NULL, std::string("Uh oh, CraftOS-Tweaked has crashed! Please report this to https://www.craftos-pc.cc/bugreport. When writing the report, attach the latest CraftOS-PC.exe .dmp file located here (you can type this into the File Explorer): '%LOCALAPPDATA%\\CrashDumps'. Add this text to the report as well: \"Last C function: " + std::string(lastCFunction) + "\". CraftOS-Tweaked will now close.").c_str(), "Application Error", MB_OK | MB_ICONSTOP);
+    else MessageBoxA(NULL, std::string("Uh oh, CraftOS-Tweaked has crashed! Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". When writing the report, attach the latest CraftOS-Tweaked.exe .dmp file located here (you can type this into the File Explorer): '%LOCALAPPDATA%\\CrashDumps'. Add this text to the report as well: \"Last C function: " + std::string(lastCFunction) + "\". CraftOS-Tweaked will now close.").c_str(), "Application Error", MB_OK | MB_ICONSTOP);
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
@@ -324,6 +329,8 @@ WmKjrDn2zzKxDX5nwvkskpIjYlJcrQu4iCX1/YwZ1yNqF9LryjlilphHCACiHbhI\n\
 RnGfN8j8KLDVmWyTYMk8V+6j0LI4+4zFh2upqGMQHL3VFVFWBek6vCDWhB/b\n\
 -----END CERTIFICATE-----";
 
+// TODO(slammingprogramming): the default upload URL below belongs to upstream. Crash upload is compiled out of
+// CraftOS-Tweaked builds (no CRASHREPORT_API_KEY); only enable it with our own endpoint (see TODO.md).
 static bool pushCrashDump(const char * data, const size_t size, const path_t& path, const std::string& url = "https://kkppoknwel.execute-api.us-east-2.amazonaws.com/dev/uploadCrashDump", const std::string& method = "POST") {
     Poco::URI uri(url);
     Poco::Net::Context::Ptr ctx = new Poco::Net::Context(Poco::Net::Context::TLS_CLIENT_USE, "", Poco::Net::Context::VERIFY_STRICT, 9, false, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
@@ -390,7 +397,7 @@ void uploadCrashDumps() {
         WIN32_FIND_DATAW find;
         wchar_t path[32767];
         ExpandEnvironmentStringsW(L"%LOCALAPPDATA%\\CrashDumps\\", path, 32767);
-        std::wstring searchpath = std::wstring(path) + L"CraftOS-PC.exe.*.dmp";
+        std::wstring searchpath = std::wstring(path) + L"CraftOS-Tweaked.exe.*.dmp";
         const HANDLE h = FindFirstFileW(searchpath.c_str(), &find);
         if (h != INVALID_HANDLE_VALUE) {
             do {

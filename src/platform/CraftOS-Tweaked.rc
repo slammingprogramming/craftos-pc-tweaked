@@ -51,7 +51,7 @@ END
 // RT_MANIFEST
 //
 
-MANIFEST                RT_MANIFEST             "..\\..\\resources\\CraftOS-PC.exe.manifest"
+MANIFEST                RT_MANIFEST             "..\\..\\resources\\CraftOS-Tweaked.exe.manifest"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -78,9 +78,9 @@ BEGIN
         BEGIN
             VALUE "FileDescription", "CraftOS-Tweaked"
             VALUE "FileVersion", "2.8.3.0"
-            VALUE "InternalName", "CraftOS-PC.exe"
-            VALUE "LegalCopyright", "Copyright (C) 2019-2024 JackMacWindows."
-            VALUE "OriginalFilename", "CraftOS-PC.exe"
+            VALUE "InternalName", "CraftOS-Tweaked.exe"
+            VALUE "LegalCopyright", "Copyright (C) 2019-2024 JackMacWindows. Copyright (C) 2026 slammingprogramming."
+            VALUE "OriginalFilename", "CraftOS-Tweaked.exe"
             VALUE "ProductName", "CraftOS-Tweaked"
             VALUE "ProductVersion", "2.8.3.0"
         END
@@ -99,7 +99,7 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ICON1               ICON                    "..\\..\\resources\\CraftOS-PC.ico"
+IDI_ICON1               ICON                    "..\\..\\resources\\CraftOS-Tweaked.ico"
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////

@@ -107,7 +107,7 @@
     <Image Include="image1.bmp">
       <Filter>Other Files</Filter>
     </Image>
-    <Image Include="resources\CraftOS-PC.ico">
+    <Image Include="resources\CraftOS-Tweaked.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
@@ -365,12 +365,12 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="src\platform\CraftOS-PC 2.rc">
+    <ResourceCompile Include="src\platform\CraftOS-Tweaked.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="resources\CraftOS-PC.exe.manifest">
+    <Manifest Include="resources\CraftOS-Tweaked.exe.manifest">
       <Filter>Resource Files</Filter>
     </Manifest>
   </ItemGroup>

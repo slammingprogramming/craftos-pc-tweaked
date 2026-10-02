@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 <!--
-Before reporting a bug, check https://github.com/MCJack123/craftos2/discussions/174 to see if it's a known issue.
+Before reporting a bug, search the [existing issues](https://github.com/slammingprogramming/craftos-pc-tweaked/issues) to see if it's a known issue.
 -->
 
 **Describe the bug**

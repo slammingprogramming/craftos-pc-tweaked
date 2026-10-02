@@ -6,6 +6,7 @@
  * 
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Copyright (c) 2026 slammingprogramming.
  * Originally released under the MIT License; see the LICENSE file.
  */
 
@@ -622,10 +623,13 @@ void runComputer(Computer * self, const path_t& bios_name, const std::string& bi
         lua_setglobal(L, "_CC_DEFAULT_SETTINGS");
         lua_pushboolean(L, ::config.disable_lua51_features);
         lua_setglobal(L, "_CC_DISABLE_LUA51_FEATURES");
+        // TODO(slammingprogramming): _HOST still has the upstream "ComputerCraft x.y (CraftOS-PC ...)" shape because
+        // Lua programs detect the emulator by it. Change it to match what the latest CC: Tweaked reports (see TODO.md),
+        // and keep the "CraftOS-PC" marker only if we decide to stay detectable as a CraftOS-PC fork.
 #if CRAFTOSPC_INDEV == true && defined(CRAFTOSPC_COMMIT)
-        lua_pushstring(L, "ComputerCraft " CRAFTOSPC_CC_VERSION " (CraftOS-Tweaked " CRAFTOSPC_VERSION "@" CRAFTOSPC_COMMIT ")");
+        lua_pushstring(L, "ComputerCraft " CRAFTOSPC_CC_VERSION " (CraftOS-PC " CRAFTOSPC_VERSION "@" CRAFTOSPC_COMMIT ")");
 #else
-        lua_pushstring(L, "ComputerCraft " CRAFTOSPC_CC_VERSION " (CraftOS-Tweaked " CRAFTOSPC_VERSION ")");
+        lua_pushstring(L, "ComputerCraft " CRAFTOSPC_CC_VERSION " (CraftOS-PC " CRAFTOSPC_VERSION ")");
 #endif
         lua_setglobal(L, "_HOST");
         if (selectedRenderer == 1) {
@@ -697,13 +701,13 @@ void runComputer(Computer * self, const path_t& bios_name, const std::string& bi
         if (status || !lua_isfunction(self->coro, -1)) {
             /* If something went wrong, error message is at the top of */
             /* the stack */
-            fprintf(stderr, "Couldn't load BIOS: %s (%s). Please make sure the CraftOS ROM is installed properly. (See https://www.craftos-pc.cc/docs/error-messages for more information.)\n", bios_path_expanded.string().c_str(), lua_tostring(self->coro, -1));
+            fprintf(stderr, "Couldn't load BIOS: %s (%s). Please make sure the CraftOS ROM is installed properly. (See " CRAFTOSTWEAKED_DOCS_URL "/error-messages for more information.)\n", bios_path_expanded.string().c_str(), lua_tostring(self->coro, -1));
             if (::config.standardsMode) displayFailure(self->term, "Error loading bios.lua");
             else queueTask([bios_path_expanded](void* term)->void*{
                 ((Terminal*)term)->showMessage(
                     SDL_MESSAGEBOX_ERROR, "Couldn't load BIOS", 
                     std::string(
-                        "Couldn't load BIOS from " + bios_path_expanded.string() + ". Please make sure the CraftOS ROM is installed properly. (See https://www.craftos-pc.cc/docs/error-messages for more information.)"
+                        "Couldn't load BIOS from " + bios_path_expanded.string() + ". Please make sure the CraftOS ROM is installed properly. (See " CRAFTOSTWEAKED_DOCS_URL "/error-messages for more information.)"
                     ).c_str()
                 ); 
                 return NULL;
@@ -867,7 +871,7 @@ void* computerThread(void* data) {
 #endif
         } catch (Poco::Exception &e) {
             fprintf(stderr, "Uncaught exception while executing computer %d (last C function: %s): %s\n", comp->id, lastCFunction, e.displayText().c_str());
-            queueTask([e](void*t)->void* {const std::string m = "Uh oh, an uncaught exception has occurred! Please report this to https://www.craftos-pc.cc/bugreport. When writing the report, include the following exception message: \"Poco exception on computer thread: " + e.displayText() + "\". The computer will now shut down.";  if (t != NULL) ((Terminal*)t)->showMessage(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", m.c_str()); else if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", m.c_str(), NULL); return NULL; }, comp->term);
+            queueTask([e](void*t)->void* {const std::string m = "Uh oh, an uncaught exception has occurred! Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". When writing the report, include the following exception message: \"Poco exception on computer thread: " + e.displayText() + "\". The computer will now shut down.";  if (t != NULL) ((Terminal*)t)->showMessage(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", m.c_str()); else if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", m.c_str(), NULL); return NULL; }, comp->term);
             if (comp->L != NULL) {
                 comp->event_lock.notify_all();
                 // Stop all open websockets
@@ -886,7 +890,7 @@ void* computerThread(void* data) {
             if (selectedRenderer == 1) returnValue = 1;
         } catch (std::exception &e) {
             fprintf(stderr, "Uncaught exception while executing computer %d (last C function: %s): %s\n", comp->id, lastCFunction, e.what());
-            queueTask([e](void*t)->void* {const std::string m = std::string("Uh oh, an uncaught exception has occurred! Please report this to https://www.craftos-pc.cc/bugreport. When writing the report, include the following exception message: \"Exception on computer thread: ") + e.what() + "\". The computer will now shut down.";  if (t != NULL) ((Terminal*)t)->showMessage(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", m.c_str()); else if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", m.c_str(), NULL); return NULL; }, comp->term);
+            queueTask([e](void*t)->void* {const std::string m = std::string("Uh oh, an uncaught exception has occurred! Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". When writing the report, include the following exception message: \"Exception on computer thread: ") + e.what() + "\". The computer will now shut down.";  if (t != NULL) ((Terminal*)t)->showMessage(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", m.c_str()); else if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", m.c_str(), NULL); return NULL; }, comp->term);
             if (comp->L != NULL) {
                 comp->event_lock.notify_all();
                 // Stop all open websockets
@@ -934,11 +938,11 @@ Computer * startComputer(int id) {
     Computer * comp;
     try {comp = new Computer(id);}
     catch (Poco::Exception &e) {
-        if ((selectedRenderer == 0 || selectedRenderer == 5) && !config.standardsMode) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to open computer", std::string("An error occurred while opening the computer session: " + e.displayText() + ". See https://www.craftos-pc.cc/docs/error-messages for more info.").c_str(), NULL);
+        if ((selectedRenderer == 0 || selectedRenderer == 5) && !config.standardsMode) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to open computer", std::string("An error occurred while opening the computer session: " + e.displayText() + ". See " CRAFTOSTWEAKED_DOCS_URL "/error-messages for more info.").c_str(), NULL);
         fprintf(stderr, "An error occurred while opening the computer session: %s\n", e.displayText().c_str());
         return NULL;
     } catch (std::exception &e) {
-        if ((selectedRenderer == 0 || selectedRenderer == 5) && !config.standardsMode) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to open computer", std::string("An error occurred while opening the computer session: " + std::string(e.what()) + ". See https://www.craftos-pc.cc/docs/error-messages for more info.").c_str(), NULL);
+        if ((selectedRenderer == 0 || selectedRenderer == 5) && !config.standardsMode) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to open computer", std::string("An error occurred while opening the computer session: " + std::string(e.what()) + ". See " CRAFTOSTWEAKED_DOCS_URL "/error-messages for more info.").c_str(), NULL);
         fprintf(stderr, "An error occurred while opening the computer session: %s\n", e.what());
         return NULL;
     }

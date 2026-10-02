@@ -6,6 +6,7 @@
  * 
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Copyright (c) 2026 slammingprogramming.
  * Originally released under the MIT License; see the LICENSE file.
  */
 

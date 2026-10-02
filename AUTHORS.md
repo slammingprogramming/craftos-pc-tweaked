@@ -3,9 +3,20 @@
 CraftOS-Tweaked is a fork of [CraftOS-PC 2](https://github.com/MCJack123/craftos2),
 and it exists because of the work of everyone listed here. The original
 project was released under the MIT License; this fork is distributed under the
-GNU Affero General Public License v3.0 or later. The original MIT notice is
+GNU Affero General Public License v3.0 or later (and CC-BY-SA-4.0 for
+documentation and other non-software content). The original MIT notice is
 preserved in [LICENSE](LICENSE), and every source file keeps its original
 copyright line.
+
+## Maintainer of CraftOS-Tweaked
+
+* **slammingprogramming** ([@slammingprogramming](https://github.com/slammingprogramming)) —
+  maintains this fork and holds the copyright in the work done on it since the
+  fork (Copyright (c) 2026 slammingprogramming): the AGPL relicensing, the
+  CraftOS-Tweaked rebranding, GitHub Actions build and release pipelines, the
+  update checker, and related changes. Source files that contain such changes
+  list this copyright next to the original one; the git history is the
+  complete record.
 
 ## Original author
 
@@ -47,6 +58,10 @@ Carried over from the original CraftOS-PC 2:
 ## Third-party code and assets
 
 These keep their own licenses and are not relicensed:
+
+* **Plugin templates** `examples/peripheral_base.cpp` and
+  `examples/plugin_base.cpp` — JackMacWindows, released into the public domain
+  by their author, and left that way here
 
 * **Lua** (via the `craftos2-lua` submodule) — Lua.org, PUC-Rio, and the
   CraftOS-PC modifications by JackMacWindows

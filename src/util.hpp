@@ -6,6 +6,7 @@
  *
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Copyright (c) 2026 slammingprogramming.
  * Originally released under the MIT License; see the LICENSE file.
  */
 
@@ -29,9 +30,22 @@ extern "C" {
 #include <Computer.hpp>
 #include <Terminal.hpp>
 
+// TODO(slammingprogramming): decide the CraftOS-Tweaked versioning scheme (see TODO.md). The updater compares
+// this string against the latest release tag of CRAFTOSTWEAKED_REPO.
 #define CRAFTOSPC_VERSION    "v2.8.4"
 #define CRAFTOSPC_CC_VERSION "1.116.1"
 #define CRAFTOSPC_INDEV      true
+
+// Project locations. These are placeholders until the project has its own
+// website and documentation; see TODO.md.
+// TODO(slammingprogramming): point the homepage/docs at real project pages.
+#define CRAFTOSTWEAKED_REPO         "slammingprogramming/craftos-pc-tweaked"
+#define CRAFTOSTWEAKED_HOMEPAGE_URL "https://github.com/" CRAFTOSTWEAKED_REPO
+#define CRAFTOSTWEAKED_RELEASES_URL CRAFTOSTWEAKED_HOMEPAGE_URL "/releases"
+#define CRAFTOSTWEAKED_BUGREPORT_URL CRAFTOSTWEAKED_HOMEPAGE_URL "/issues"
+// PLACEHOLDER: this is still the upstream CraftOS-PC 2 documentation, which
+// mostly applies to CraftOS-Tweaked until we host our own.
+#define CRAFTOSTWEAKED_DOCS_URL     "https://www.craftos-pc.cc/docs"
 
 using path_t = std::filesystem::path;
 namespace fs = std::filesystem;

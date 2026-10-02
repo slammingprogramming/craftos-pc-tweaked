@@ -6,6 +6,7 @@
  * 
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Copyright (c) 2026 slammingprogramming.
  * Originally released under the MIT License; see the LICENSE file.
  */
 
@@ -153,7 +154,7 @@ void updateNow(const std::string& tag_name, const Poco::JSON::Object::Ptr root) 
     win.maxSize = {480, 103};
     win.releasedWhenClosed = YES;
     [win makeKeyAndOrderFront:NSApp];
-    HTTPDownload("https://github.com/MCJack123/craftos2/releases/download/" + tag_name + "/sha256-hashes.txt", [win, tag_name, vc](std::istream * shain, Poco::Exception * e, Poco::Net::HTTPResponse * res) {
+    HTTPDownload("https://github.com/" CRAFTOSTWEAKED_REPO "/releases/download/" + tag_name + "/sha256-hashes.txt", [win, tag_name, vc](std::istream * shain, Poco::Exception * e, Poco::Net::HTTPResponse * res) {
         if (e != NULL) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Update Error", std::string("An error occurred while downloading the update: " + e->displayText()).c_str(), NULL);
             [win close];
@@ -163,7 +164,7 @@ void updateNow(const std::string& tag_name, const Poco::JSON::Object::Ptr root) 
         bool found = false;
         while (!shain->eof()) {
             std::getline(*shain, line);
-            if (line.find("CraftOS-PC.dmg") != std::string::npos) {found = true; break;}
+            if (line.find("CraftOS-Tweaked.dmg") != std::string::npos) {found = true; break;}
         }
         if (!found) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Update Error", "A file required for verification could not be downloaded sucessfully. Please download the installer manually.", NULL);
@@ -171,7 +172,7 @@ void updateNow(const std::string& tag_name, const Poco::JSON::Object::Ptr root) 
             return;
         }
         std::string hash = line.substr(0, 64);
-        HTTPDownload("https://github.com/MCJack123/craftos2/releases/download/" + tag_name + "/CraftOS-PC.dmg", [hash, win, vc](std::istream * in, Poco::Exception * e, Poco::Net::HTTPResponse * res) {
+        HTTPDownload("https://github.com/" CRAFTOSTWEAKED_REPO "/releases/download/" + tag_name + "/CraftOS-Tweaked.dmg", [hash, win, vc](std::istream * in, Poco::Exception * e, Poco::Net::HTTPResponse * res) {
             if (e != NULL) {
                 SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Update Error", std::string("An error occurred while downloading the update: " + e->displayText()).c_str(), NULL);
                 [win close];
@@ -229,7 +230,7 @@ void updateNow(const std::string& tag_name, const Poco::JSON::Object::Ptr root) 
                 return;
             }
             @autoreleasepool {
-                NSString *tempFileTemplate = [NSTemporaryDirectory() stringByAppendingPathComponent:@"CraftOS-PC.dmg"];
+                NSString *tempFileTemplate = [NSTemporaryDirectory() stringByAppendingPathComponent:@"CraftOS-Tweaked.dmg"];
                 const char *tempFileTemplateCString = [tempFileTemplate fileSystemRepresentation];
                 std::ofstream out(tempFileTemplateCString, std::ios::binary);
                 out << data;
@@ -275,7 +276,7 @@ void updateNow(const std::string& tag_name, const Poco::JSON::Object::Ptr root) 
                                 [res release];
                                 [path release];
                                 NSAlert * alert = [[NSAlert alloc] init];
-                                alert.informativeText = @"This version does not support auto updating. Please go to https://github.com/MCJack123/craftos2/releases to install manually.";
+                                alert.informativeText = @"This version does not support auto updating. Please go to " CRAFTOSTWEAKED_RELEASES_URL " to install manually.";
                                 alert.messageText = @"Update failed";
                                 [alert beginSheetModalForWindow:win completionHandler:^(NSModalResponse returnCode) {
                                     [alert.window close];
@@ -335,7 +336,7 @@ void handler(int sig) {
 
     // print out all the frames to stderr
     if (!loadingPlugin.empty()) fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. It appears the plugin \"%s\" may have been responsible for this. Please remove it and try again.\n", strsignal(sig), loadingPlugin.c_str());
-    else fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. Please report this to https://www.craftos-pc.cc/bugreport. Paste the following text under the 'Screenshots' section:\nOS: Mac (Application)\nLast C function: %s\n", strsignal(sig), lastCFunction);
+    else fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". Include the following text in your report:\nOS: Mac (Application)\nLast C function: %s\n", strsignal(sig), lastCFunction);
     backtrace_symbols_fd(array, size, STDERR_FILENO);
     signal(sig, NULL);
 }

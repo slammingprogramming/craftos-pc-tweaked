@@ -1,5 +1,5 @@
 # Initialize
-AC_INIT([CraftOS-PC], [2.8])
+AC_INIT([CraftOS-Tweaked], [2.8])
 AC_CONFIG_SRCDIR([src/main.cpp])
 m4_include([m4/find_cxx.m4])
 m4_include([m4/find_cxx11.m4])
@@ -80,7 +80,7 @@ AC_CHECK_HEADERS(Poco/Net/NetSSL.h, [], [AC_MSG_ERROR([Could not find Poco NetSS
 if test "x$enable_wasm" = "xyes"; then
     LDFLAGS="$LDFLAGS -s USE_PTHREADS=1 --embed-file $with_wasm_rom@/craftos --shared-memory"
     LIBS="$LIBS -lPocoJSON -lPocoUtil -lPocoFoundation"
-    AC_SUBST(OUT_TARGET, craftos.html)
+    AC_SUBST(OUT_TARGET, craftos-tweaked.html)
     AC_SUBST(HTTP_TARGET, "apis_http_emscripten.o")
 else
     AX_CXX_CHECK_LIB(PocoFoundation, [Poco::ASCIIEncoding], [], [AC_MSG_ERROR([Could not find Poco Foundation library.])])
@@ -90,7 +90,7 @@ else
     AX_CXX_CHECK_LIB(PocoCrypto, [Poco::Crypto::CipherFactory], [], [AC_MSG_ERROR([Could not find Poco Crypto library.])])
     AX_CXX_CHECK_LIB(PocoNet, [Poco::Net::HTTPRequest], [], [AC_MSG_ERROR([Could not find Poco Net library.])])
     AX_CXX_CHECK_LIB(PocoNetSSL, [Poco::Net::HTTPSClientSession], [], [AC_MSG_ERROR([Could not find Poco NetSSL library.])])
-    AC_SUBST(OUT_TARGET, craftos)
+    AC_SUBST(OUT_TARGET, craftos-tweaked)
     AC_SUBST(HTTP_TARGET, "apis_http_handle.o apis_http.o")
 fi
 

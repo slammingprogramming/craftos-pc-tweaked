@@ -59,7 +59,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.util.Hashtable;
 import java.util.Locale;
 
-import cc.craftospc.CraftOSPC.MainActivity;
+import io.github.slammingprogramming.craftostweaked.MainActivity;
 
 
 /**

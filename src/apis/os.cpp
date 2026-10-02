@@ -6,6 +6,7 @@
  *
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Copyright (c) 2026 slammingprogramming.
  * Originally released under the MIT License; see the LICENSE file.
  */
 
@@ -351,10 +352,13 @@ static int os_reboot(lua_State *L) {
 static int os_about(lua_State *L) {
     lastCFunction = __func__;
     lua_pushstring(L, "CraftOS-Tweaked " CRAFTOSPC_VERSION "\n\n\
+Copyright (c) 2026 slammingprogramming\n\
+Copyright (c) 2019-2024 JackMacWindows (original CraftOS-PC 2)\n\
+\n\
 This program is free software, licensed under the GNU Affero General Public\n\
 License, version 3 or (at your option) any later version (AGPL-3.0-or-later).\n\
 It comes with ABSOLUTELY NO WARRANTY. The complete corresponding source code is\n\
-available at https://github.com/slammingprogramming/craftos-pc-tweaked, and the\n\
+available at " CRAFTOSTWEAKED_HOMEPAGE_URL ", and the\n\
 license text is available in the LICENSE file or at https://www.gnu.org/licenses/.\n\
 \n\
 This is a fork of CraftOS-PC 2 by JackMacWindows (MCJack123), which was\n\

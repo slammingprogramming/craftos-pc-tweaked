@@ -307,7 +307,7 @@ static int PKCS7_verify_timestamp(PKCS7 *p7, STACK_OF(X509) *certs, X509_STORE *
         switch (type) {
             case 2: { // bundle identifier {UTF8STRING}
                 ASN1_UTF8STRING *str = d2i_ASN1_UTF8STRING(NULL, &val, val_len);
-                if (std::string((const char*)str->data, str->length) != "cc.craftos-pc.CraftOS-PC-iOS") {
+                if (std::string((const char*)str->data, str->length) != "io.github.slammingprogramming.CraftOS-Tweaked-iOS") {
                     NSLog(@"Receipt validation failed: Bundle identifier does not match");
                     ASN1_UTF8STRING_free(str);
                     ASN1_OCTET_STRING_free(valV);
@@ -396,7 +396,7 @@ static int PKCS7_verify_timestamp(PKCS7 *p7, STACK_OF(X509) *certs, X509_STORE *
 #ifndef DEBUG // Debug builds use ?????
     unsigned char uuid_bytes[16], hash_out[20];
     [[UIDevice currentDevice].identifierForVendor getUUIDBytes:uuid_bytes];
-    std::string id_data = std::string((const char*)uuid_bytes, 16) + salt + "\x0C\034cc.craftos-pc.CraftOS-PC-iOS";
+    std::string id_data = std::string((const char*)uuid_bytes, 16) + salt + "\x0C\034io.github.slammingprogramming.CraftOS-Tweaked-iOS";
     SHA1((const unsigned char*)id_data.c_str(), id_data.size(), hash_out);
     if (memcmp(hash.c_str(), hash_out, 20) != 0) {
         NSLog(@"Receipt validation failed: Invalid device hash");

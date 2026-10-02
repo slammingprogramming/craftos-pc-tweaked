@@ -6,7 +6,7 @@ CXXFLAGS=@CXXFLAGS@
 LDFLAGS=@LDFLAGS@
 LIBEXT=.so
 ifndef OS
-ifeq (@OUT_TARGET@, craftos)
+ifeq (@OUT_TARGET@, craftos-tweaked)
 ifeq ($(shell uname), Darwin)
 LIBEXT=.dylib
 endif
@@ -14,7 +14,7 @@ endif
 endif
 LIBS=craftos2-lua/src/liblua$(LIBEXT) @LIBS@
 ifndef OS
-ifeq (@OUT_TARGET@, craftos)
+ifeq (@OUT_TARGET@, craftos-tweaked)
 ifeq ($(shell uname), Darwin)
 LIBS+= -framework ApplicationServices
 LIBEXT=.dylib
@@ -51,27 +51,27 @@ craftos2-lua/src/liblua$(LIBEXT): craftos2-lua
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 macapp: craftos2-lua/src/liblua$(LIBEXT) $(OBJ) $(ODIR)/platform_macapp.o
-	mkdir -p CraftOS-PC.app/Contents/MacOS
-	mkdir -p CraftOS-PC.app/Contents/Resources
-	echo " [LD]    CraftOS-PC.app/Contents/MacOS/craftos"
-	clang++ $(LDFLAGS) -o CraftOS-PC.app/Contents/MacOS/craftos $^ $(LIBS) -F/Library/Frameworks -framework Foundation -framework AppKit -mmacosx-version-min=10.9.5
-	install_name_tool -add_rpath @executable_path/../Frameworks CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/libharu/lib/libhpdf-2.3.0.dylib "@rpath/libhpdf-2.3.0.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/libpng/lib/libpng16.16.dylib "@rpath/libpng16.16.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/poco/lib/libPocoNetSSL.71.dylib "@rpath/libPocoNetSSL.71.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/poco/lib/libPocoCrypto.71.dylib "@rpath/libPocoCrypto.71.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/poco/lib/libPocoFoundation.71.dylib "@rpath/libPocoFoundation.71.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/poco/lib/libPocoJSON.71.dylib "@rpath/libPocoJSON.71.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/poco/lib/libPocoNet.71.dylib "@rpath/libPocoNet.71.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/poco/lib/libPocoUtil.71.dylib "@rpath/libPocoUtil.71.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/poco/lib/libPocoXML.71.dylib "@rpath/libPocoXML.71.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/lib/libSDL2_mixer-2.0.0.dylib "@rpath/libSDL2_mixer-2.0.0.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/sdl2/lib/libSDL2-2.0.0.dylib "@rpath/libSDL2-2.0.0.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/flac/lib/libFLAC.8.dylib "@rpath/libFLAC.8.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/mpg123/lib/libmpg123.0.dylib "@rpath/libmpg123.0.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/openssl@1.1/lib/libcrypto.1.1.dylib "@rpath/libcrypto.1.1.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	install_name_tool -change /usr/local/opt/openssl@1.1/lib/libssl.1.1.dylib "@rpath/libssl.1.1.dylib" CraftOS-PC.app/Contents/MacOS/craftos
-	cp resources/Info.plist CraftOS-PC.app/Contents/
+	mkdir -p CraftOS-Tweaked.app/Contents/MacOS
+	mkdir -p CraftOS-Tweaked.app/Contents/Resources
+	echo " [LD]    CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked"
+	clang++ $(LDFLAGS) -o CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked $^ $(LIBS) -F/Library/Frameworks -framework Foundation -framework AppKit -mmacosx-version-min=10.9.5
+	install_name_tool -add_rpath @executable_path/../Frameworks CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/libharu/lib/libhpdf-2.3.0.dylib "@rpath/libhpdf-2.3.0.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/libpng/lib/libpng16.16.dylib "@rpath/libpng16.16.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/poco/lib/libPocoNetSSL.71.dylib "@rpath/libPocoNetSSL.71.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/poco/lib/libPocoCrypto.71.dylib "@rpath/libPocoCrypto.71.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/poco/lib/libPocoFoundation.71.dylib "@rpath/libPocoFoundation.71.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/poco/lib/libPocoJSON.71.dylib "@rpath/libPocoJSON.71.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/poco/lib/libPocoNet.71.dylib "@rpath/libPocoNet.71.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/poco/lib/libPocoUtil.71.dylib "@rpath/libPocoUtil.71.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/poco/lib/libPocoXML.71.dylib "@rpath/libPocoXML.71.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/lib/libSDL2_mixer-2.0.0.dylib "@rpath/libSDL2_mixer-2.0.0.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/sdl2/lib/libSDL2-2.0.0.dylib "@rpath/libSDL2-2.0.0.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/flac/lib/libFLAC.8.dylib "@rpath/libFLAC.8.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/mpg123/lib/libmpg123.0.dylib "@rpath/libmpg123.0.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/openssl@1.1/lib/libcrypto.1.1.dylib "@rpath/libcrypto.1.1.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	install_name_tool -change /usr/local/opt/openssl@1.1/lib/libssl.1.1.dylib "@rpath/libssl.1.1.dylib" CraftOS-Tweaked.app/Contents/MacOS/craftos-tweaked
+	cp resources/Info.plist CraftOS-Tweaked.app/Contents/
 ifneq (,$(wildcard codesign/Makefile))
 	make -C codesign
 endif
@@ -140,20 +140,20 @@ linux-plugin:
 	$(CXX) -std=c++17 -shared -fPIC -o ccemux.so examples/ccemux.cpp craftos2-lua/src/liblua$(LIBEXT) -lSDL2 -Icraftos2-lua/include -Iapi
 
 clean: $(ODIR)
-	rm -f craftos
+	rm -f craftos-tweaked
 	find obj -type f -not -name speaker_sounds.o -exec rm -f {} \;
 
-rebuild: clean craftos
+rebuild: clean craftos-tweaked
 
-install: craftos
-	echo " [CP]    $(DESTDIR)/craftos"
-	cp craftos $(DESTDIR)/craftos
+install: craftos-tweaked
+	echo " [CP]    $(DESTDIR)/craftos-tweaked"
+	cp craftos-tweaked $(DESTDIR)/craftos-tweaked
 
 uninstall:
-	echo " [RM]    $(DESTDIR)/craftos"
-	rm $(DESTDIR)/craftos
+	echo " [RM]    $(DESTDIR)/craftos-tweaked"
+	rm $(DESTDIR)/craftos-tweaked
 
-test: craftos
-	./craftos --headless --script $(shell pwd)/resources/CraftOSTest.lua -d "$(shell mktemp -d)"
+test: craftos-tweaked
+	./craftos-tweaked --headless --script $(shell pwd)/resources/CraftOSTest.lua -d "$(shell mktemp -d)"
 
 .SILENT:

@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by CraftOS-PC 2.rc
+// Used by CraftOS-Tweaked.rc
 //
 #define IDR_RT_MANIFEST1                24
 #define IDI_ICON1                       104

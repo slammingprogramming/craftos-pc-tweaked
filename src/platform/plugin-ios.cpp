@@ -6,6 +6,7 @@
  *
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Copyright (c) 2026 slammingprogramming.
  * Originally released under the MIT License; see the LICENSE file.
  */
 
@@ -150,7 +151,7 @@ std::unordered_map<path_t, std::string> initializePlugins() {
         }
         if (info->abi_version != PLUGIN_VERSION || info->minimum_structure_version > function_map.structure_version) {
             failures[path] = "CraftOS-Tweaked version too old";
-            fprintf(stderr, "Failed to load plugin at %s: This plugin requires a newer version of CraftOS-PC\n", path.string().c_str());
+            fprintf(stderr, "Failed to load plugin at %s: This plugin requires a newer version of CraftOS-Tweaked\n", path.string().c_str());
             const auto plugin_deinit = std::get<3>(plugin);
             if (plugin_deinit != NULL) plugin_deinit(info);
             continue;

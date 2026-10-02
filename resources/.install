@@ -1,7 +1,7 @@
 #!/bin/sh
 # Mac distribution auto-updater
 # DO NOT RUN STANDALONE!
-SRCAPP=$(dirname $0)/CraftOS-PC.app
+SRCAPP=$(dirname $0)/CraftOS-Tweaked.app
 DSTAPP=$1
 TMPDIR=$(mktemp)
 echo Temp dir: $TMPDIR

@@ -6,6 +6,7 @@
  * 
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Copyright (c) 2026 slammingprogramming.
  * Originally released under the MIT License; see the LICENSE file.
  */
 
@@ -805,7 +806,7 @@ void handler(int sig) {
     size = backtrace(array, 25);
 
     // print out all the frames to stderr
-    fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. Please report this to https://www.craftos-pc.cc/bugreport. Paste the following text under the 'Screenshots' section:\nOS: Mac (Application)\n", strsignal(sig));
+    fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". Include the following text in your report:\nOS: Mac (Application)\n", strsignal(sig));
     backtrace_symbols_fd(array, size, STDERR_FILENO);
     signal(sig, NULL);
 }

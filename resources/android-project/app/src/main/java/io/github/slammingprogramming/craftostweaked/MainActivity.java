@@ -1,4 +1,4 @@
-package cc.craftospc.CraftOSPC;
+package io.github.slammingprogramming.craftostweaked;
 
 import android.content.Context;
 import android.content.pm.PackageInfo;

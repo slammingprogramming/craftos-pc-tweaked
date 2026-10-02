@@ -6,6 +6,7 @@
  * 
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Copyright (c) 2026 slammingprogramming.
  * Originally released under the MIT License; see the LICENSE file.
  */
 
@@ -592,7 +593,7 @@ static bool renderTerminal(Terminal * term, bool& pushEvent) {
         fprintf(stderr, "Warning: Render on term %d threw an error: %s (%d)\n", term->id, ex.what(), term->errorcount);
         if (term->errorcount++ > 10) {
             term->errorcount = 0;
-            term->showMessage(SDL_MESSAGEBOX_ERROR, "Error rendering terminal", std::string(std::string("An error repeatedly occurred while attempting to render the terminal: ") + ex.what() + ". This is likely a bug in CraftOS-Tweaked. Please go to https://www.craftos-pc.cc/bugreport and report this issue. The window will now close. Please note that CraftOS-Tweaked may be left in an invalid state - you should restart the emulator.").c_str());
+            term->showMessage(SDL_MESSAGEBOX_ERROR, "Error rendering terminal", std::string(std::string("An error repeatedly occurred while attempting to render the terminal: ") + ex.what() + ". This is likely a bug in CraftOS-Tweaked. Please go to " CRAFTOSTWEAKED_BUGREPORT_URL " and report this issue. The window will now close. Please note that CraftOS-Tweaked may be left in an invalid state - you should restart the emulator.").c_str());
             SDL_Event e;
             e.type = SDL_WINDOWEVENT;
             e.window.event = SDL_WINDOWEVENT_CLOSE;

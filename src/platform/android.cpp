@@ -6,6 +6,7 @@
  * 
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Copyright (c) 2026 slammingprogramming.
  * Originally released under the MIT License; see the LICENSE file.
  */
 
@@ -144,12 +145,12 @@ std::string mobile_keyboard_open(lua_State *L, void* ud) {
 }
 
 extern "C" {
-JNIEXPORT void JNICALL Java_cc_craftospc_CraftOSPC_MainActivity_sendKeyboardUpdate(JNIEnv *env, jclass klass, int size) {
+JNIEXPORT void JNICALL Java_io_github_slammingprogramming_craftostweaked_MainActivity_sendKeyboardUpdate(JNIEnv *env, jclass klass, int size) {
     LockGuard lock(computers);
     if (!computers->empty()) queueEvent(computers->front(), mobile_keyboard_open, (void*)(ptrdiff_t)size);
 }
 
-JNIEXPORT void JNICALL Java_cc_craftospc_CraftOSPC_MainActivity_sendCloseEvent(JNIEnv *env, jclass klass) {
+JNIEXPORT void JNICALL Java_io_github_slammingprogramming_craftostweaked_MainActivity_sendCloseEvent(JNIEnv *env, jclass klass) {
     if (renderTargets.size() < 2) return;
     SDL_Event e;
     e.type = SDL_WINDOWEVENT;

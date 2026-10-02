@@ -6,6 +6,7 @@
  * 
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Copyright (c) 2026 slammingprogramming.
  * Originally released under the MIT License; see the LICENSE file.
  */
 
@@ -42,6 +43,8 @@ path_t rom_path_expanded;
 #else
 path_t rom_path = "/usr/local/share/craftos";
 #endif
+// TODO(slammingprogramming): data and ROM locations still use the upstream "CraftOS-PC"/"craftos" names so existing
+// saves keep working. They are to be changed to match CC: Tweaked, with a migration step (see TODO.md).
 const char * base_path = "$HOME/Library/Application\\ Support/CraftOS-PC";
 path_t base_path_expanded;
 
@@ -160,7 +163,7 @@ void handler(int sig) {
 
     // print out all the frames to stderr
     if (!loadingPlugin.empty()) fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. It appears the plugin \"%s\" may have been responsible for this. Please remove it and try again.\n", strsignal(sig), loadingPlugin.c_str());
-    else fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. Please report this to https://www.craftos-pc.cc/bugreport. Paste the following text under the 'Screenshots' section:\nOS: Mac (Console build)\nLast C function: %s\n", strsignal(sig), lastCFunction);
+    else fprintf(stderr, "Uh oh, CraftOS-Tweaked has crashed! Reason: %s. Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". Include the following text in your report:\nOS: Mac (Console build)\nLast C function: %s\n", strsignal(sig), lastCFunction);
     backtrace_symbols_fd(array, size, STDERR_FILENO);
     signal(sig, NULL);
 }

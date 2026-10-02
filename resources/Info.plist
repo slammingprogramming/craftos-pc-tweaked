@@ -9,11 +9,11 @@
 	<key>CFBundleAllowMixedLocalizations</key>
 	<true/>
 	<key>CFBundleExecutable</key>
-	<string>craftos</string>
+	<string>craftos-tweaked</string>
 	<key>CFBundleIconFile</key>
 	<string>CraftOS-PC.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>cc.craftos-pc.CraftOS-PC</string>
+	<string>io.github.slammingprogramming.CraftOS-Tweaked</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -29,7 +29,7 @@
 	<key>CFBundleVersion</key>
 	<string>2.8.3</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright (C) 2019-2024 JackMacWindows.</string>
+	<string>Copyright (C) 2019-2024 JackMacWindows. Copyright (C) 2026 slammingprogramming.</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 </dict>

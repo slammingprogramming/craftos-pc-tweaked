@@ -1,3 +1,4 @@
+<!-- Copyright (c) 2019-2024 JackMacWindows (original CraftOS-PC 2 documentation, MIT License). Copyright (c) 2026 slammingprogramming. Licensed under CC-BY-SA-4.0; see LICENSE. -->
 # New feature documentation
 This file provides documentation for the new APIs in CraftOS-Tweaked.
 
@@ -198,8 +199,8 @@ _declspec(dllexport)
 int version(lua_State *L) {lua_pushinteger(L, PLUGIN_VERSION); return 1;}
 ```
 Compile as a shared library and copy to:
-* Windows: `C:\Program Files\CraftOS-PC\plugins\example.dll`
-* Mac: `CraftOS-PC.app/Contents/Resources/plugins/example.dylib`
+* Windows: `C:\Program Files\CraftOS-Tweaked\plugins\example.dll`
+* Mac: `CraftOS-Tweaked.app/Contents/Resources/plugins/example.dylib`
 * Linux: `/usr/share/craftos/plugins/example.so`
 
 When booting a new computer, the `example` API will be available in the global table.  

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2019-2024 JackMacWindows <jackmacwindowslinux@gmail.com> -->
+<!-- Copyright 2019-2024 JackMacWindows <jackmacwindowslinux@gmail.com> (original CraftOS-PC 2, MIT License) -->
+<!-- Copyright 2026 slammingprogramming -->
 <component type="desktop-application">
-  <id>cc.craftos-pc.CraftOS-PC</id>
-  <metadata_license>MIT</metadata_license>
+  <id>io.github.slammingprogramming.CraftOS-Tweaked</id>
+  <metadata_license>CC-BY-SA-4.0</metadata_license>
   <project_license>AGPL-3.0-or-later</project_license>
   <name>CraftOS-Tweaked</name>
   <summary>Advanced ComputerCraft emulator</summary>
@@ -33,33 +34,22 @@
     </p>
   </description>
 
-  <launchable type="desktop-id">CraftOS-PC.desktop</launchable>
+  <launchable type="desktop-id">CraftOS-Tweaked.desktop</launchable>
 
+  <!-- TODO(slammingprogramming): add CraftOS-Tweaked screenshots (see TODO.md). This one is from the original project. -->
   <screenshots>
     <screenshot type="default">
-      <image>https://www.craftos-pc.cc/images/image1.png</image>
-    </screenshot>
-    <screenshot>
-      <image>https://www.craftos-pc.cc/images/cospc-raycaster.png</image>
-    </screenshot>
-    <screenshot>
-      <image>https://www.craftos-pc.cc/images/peripherals.png</image>
-    </screenshot>
-    <screenshot>
-      <image>https://www.craftos-pc.cc/images/multicomputer.png</image>
-    </screenshot>
-    <screenshot>
-      <image>https://www.craftos-pc.cc/images/gfx.png</image>
-    </screenshot>
-    <screenshot>
-      <image>https://www.craftos-pc.cc/images/debugger_demo.png</image>
+      <image>https://raw.githubusercontent.com/slammingprogramming/craftos-pc-tweaked/master/resources/image1.png</image>
     </screenshot>
   </screenshots>
 
-  <url type="homepage">https://www.craftos-pc.cc/</url>
-  <developer_name>JackMacWindows</developer_name>
+  <!-- TODO(slammingprogramming): replace the homepage with a project site once one exists. -->
+  <url type="homepage">https://github.com/slammingprogramming/craftos-pc-tweaked</url>
+  <url type="bugtracker">https://github.com/slammingprogramming/craftos-pc-tweaked/issues</url>
+  <url type="vcs-browser">https://github.com/slammingprogramming/craftos-pc-tweaked</url>
+  <developer_name>slammingprogramming</developer_name>
 
   <provides>
-    <binary>craftos</binary>
+    <binary>craftos-tweaked</binary>
   </provides>
 </component>

@@ -190,50 +190,50 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     <Linkage-dirent>static</Linkage-dirent>
-    <TargetName>CraftOS-PC</TargetName>
+    <TargetName>CraftOS-Tweaked</TargetName>
     <CodeAnalysisRuleSet>resources\analysis.ruleset</CodeAnalysisRuleSet>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     <Linkage-dirent>static</Linkage-dirent>
-    <TargetName>CraftOS-PC</TargetName>
+    <TargetName>CraftOS-Tweaked</TargetName>
     <CodeAnalysisRuleSet>resources\analysis.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     <Linkage-dirent>static</Linkage-dirent>
-    <TargetName>CraftOS-PC</TargetName>
+    <TargetName>CraftOS-Tweaked</TargetName>
     <CodeAnalysisRuleSet>resources\analysis.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     <Linkage-dirent>static</Linkage-dirent>
-    <TargetName>CraftOS-PC</TargetName>
+    <TargetName>CraftOS-Tweaked</TargetName>
     <CodeAnalysisRuleSet>resources\analysis.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseStandalone|x64'">
     <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     <Linkage-dirent>static</Linkage-dirent>
-    <TargetName>CraftOS-PC</TargetName>
+    <TargetName>CraftOS-Tweaked</TargetName>
     <CodeAnalysisRuleSet>resources\analysis.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseStandalone|ARM64'">
     <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     <Linkage-dirent>static</Linkage-dirent>
-    <TargetName>CraftOS-PC</TargetName>
+    <TargetName>CraftOS-Tweaked</TargetName>
     <CodeAnalysisRuleSet>resources\analysis.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseC|x64'">
     <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     <Linkage-dirent>static</Linkage-dirent>
-    <TargetName>CraftOS-PC</TargetName>
+    <TargetName>CraftOS-Tweaked</TargetName>
     <CodeAnalysisRuleSet>resources\analysis.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseC|ARM64'">
     <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     <Linkage-dirent>static</Linkage-dirent>
-    <TargetName>CraftOS-PC</TargetName>
+    <TargetName>CraftOS-Tweaked</TargetName>
     <CodeAnalysisRuleSet>resources\analysis.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -622,7 +622,7 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="image1.bmp" />
-    <Image Include="resources\CraftOS-PC.ico" />
+    <Image Include="resources\CraftOS-Tweaked.ico" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="api\Computer.hpp" />
@@ -782,10 +782,10 @@
     <ClCompile Include="src\terminal\TRoRTerminal.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="src\platform\CraftOS-PC 2.rc" />
+    <ResourceCompile Include="src\platform\CraftOS-Tweaked.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="resources\CraftOS-PC.exe.manifest" />
+    <Manifest Include="resources\CraftOS-Tweaked.exe.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

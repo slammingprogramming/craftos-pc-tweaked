@@ -7,6 +7,7 @@
  * 
  * This code is licensed under the GNU AGPL v3.0 or later (AGPL-3.0-or-later).
  * Copyright (c) 2019-2024 JackMacWindows.
+ * Copyright (c) 2026 slammingprogramming.
  * Originally released under the MIT License; see the LICENSE file.
  */
 
@@ -107,7 +108,7 @@ static void* releaseNotesThread(void* data) {
 #endif
     } catch (std::exception &e) {
         fprintf(stderr, "Uncaught exception while executing computer %d (last C function: %s): %s\n", comp->id, lastCFunction, e.what());
-        queueTask([e](void*t)->void* {const std::string m = std::string("Uh oh, an uncaught exception has occurred! Please report this to https://www.craftos-pc.cc/bugreport. When writing the report, include the following exception message: \"Exception on computer thread: ") + e.what() + "\". The computer will now shut down.";  if (t != NULL) ((Terminal*)t)->showMessage(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", m.c_str()); else if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", m.c_str(), NULL); return NULL; }, comp->term);
+        queueTask([e](void*t)->void* {const std::string m = std::string("Uh oh, an uncaught exception has occurred! Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". When writing the report, include the following exception message: \"Exception on computer thread: ") + e.what() + "\". The computer will now shut down.";  if (t != NULL) ((Terminal*)t)->showMessage(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", m.c_str()); else if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", m.c_str(), NULL); return NULL; }, comp->term);
         if (comp->L != NULL) {
             comp->event_lock.notify_all();
             for (library_t ** lib = libraries; *lib != NULL; lib++) if ((*lib)->deinit != NULL) (*lib)->deinit(comp);
@@ -146,7 +147,7 @@ static void* releaseNotesThread(void* data) {
 static void showReleaseNotes() {
     Computer * comp;
     try {comp = new Computer(-1, true);} catch (std::exception &e) {
-        if ((selectedRenderer == 0 || selectedRenderer == 5) && !config.standardsMode) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to open computer", std::string("An error occurred while opening the computer session: " + std::string(e.what()) + ". See https://www.craftos-pc.cc/docs/error-messages for more info.").c_str(), NULL);
+        if ((selectedRenderer == 0 || selectedRenderer == 5) && !config.standardsMode) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to open computer", std::string("An error occurred while opening the computer session: " + std::string(e.what()) + ". See " CRAFTOSTWEAKED_DOCS_URL "/error-messages for more info.").c_str(), NULL);
         else fprintf(stderr, "An error occurred while opening the computer session: %s", e.what());
         return;
     }
@@ -166,7 +167,7 @@ static void update_thread() {
         addSystemCertificates(ctx);
         HTTPSClientSession session("api.github.com", 443, ctx);
         if (!config.http_proxy_server.empty()) session.setProxy(config.http_proxy_server, config.http_proxy_port);
-        HTTPRequest request(HTTPRequest::HTTP_GET, "/repos/MCJack123/craftos2/releases/latest", HTTPMessage::HTTP_1_1);
+        HTTPRequest request(HTTPRequest::HTTP_GET, "/repos/" CRAFTOSTWEAKED_REPO "/releases/latest", HTTPMessage::HTTP_1_1);
         HTTPResponse response;
         session.setTimeout(Poco::Timespan(5000000));
         request.add("User-Agent", "CraftOS-Tweaked/" CRAFTOSPC_VERSION " ComputerCraft/" CRAFTOSPC_CC_VERSION);
@@ -175,7 +176,10 @@ static void update_thread() {
         parser.parse(session.receiveResponse(response));
         Poco::JSON::Object::Ptr root = parser.asVar().extract<Poco::JSON::Object::Ptr>();
         if (root->getValue<std::string>("tag_name") != CRAFTOSPC_VERSION) {
-#if (defined(__APPLE__) || defined(WIN32)) && !defined(STANDALONE_ROM)
+// In-place updating needs signed installer assets (CraftOS-Tweaked-Setup.exe / CraftOS-Tweaked.dmg), which
+// our releases do not include yet (see TODO.md). Until then every platform only gets a notification with a
+// link to the release page. Define CRAFTOSTWEAKED_AUTOUPDATE to enable the installer flow.
+#if defined(CRAFTOSTWEAKED_AUTOUPDATE) && (defined(__APPLE__) || defined(WIN32)) && !defined(STANDALONE_ROM)
             SDL_MessageBoxData msg;
             SDL_MessageBoxButtonData buttons[] = {
                 {SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 3, "Update at Quit"},
@@ -507,7 +511,7 @@ static void migrateData(bool forced) {
 }
 
 #ifdef WINDOWS_SUBSYSTEM
-#define checkTTY() {SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unsupported command-line argument", "This build of CraftOS-Tweaked does not support console input/output, which is required for one or more arguments passed to CraftOS-Tweaked. Please use CraftOS-PC_console.exe instead, as this supports console I/O. If it is not present in the install directory, please reinstall CraftOS-Tweaked with the console build option enabled.", NULL); return 5;}
+#define checkTTY() {SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unsupported command-line argument", "This build of CraftOS-Tweaked does not support console input/output, which is required for one or more arguments passed to CraftOS-Tweaked. Please use CraftOS-Tweaked_console.exe instead, as this supports console I/O. If it is not present in the install directory, please reinstall CraftOS-Tweaked with the console build option enabled.", NULL); return 5;}
 #else
 #define checkTTY() 
 #endif
@@ -876,8 +880,8 @@ int main(int argc, char*argv[]) {
         if (factory) factory->init();
         else SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO);
     } catch (std::exception &e) {
-        if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to initialize renderer", ("An error occurred while initializing the renderer: " + std::string(e.what()) + ". See https://www.craftos-pc.cc/docs/error-messages for more info. CraftOS-Tweaked will now close").c_str(), NULL);
-        else fprintf(stderr, "An error occurred while initializing the renderer: %s. See https://www.craftos-pc.cc/docs/error-messages for more info. CraftOS-Tweaked will now close.\n", e.what());
+        if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Failed to initialize renderer", ("An error occurred while initializing the renderer: " + std::string(e.what()) + ". See " CRAFTOSTWEAKED_DOCS_URL "/error-messages for more info. CraftOS-Tweaked will now close").c_str(), NULL);
+        else fprintf(stderr, "An error occurred while initializing the renderer: %s. See " CRAFTOSTWEAKED_DOCS_URL "/error-messages for more info. CraftOS-Tweaked will now close.\n", e.what());
         SDL_Quit();
         return 2;
     }
@@ -890,11 +894,13 @@ int main(int argc, char*argv[]) {
     if ((selectedRenderer == 0 || selectedRenderer == 5) && config.checkUpdates && config.skipUpdate != CRAFTOSPC_VERSION) 
         std::thread(update_thread).detach();
 #endif
+// TODO(slammingprogramming): crash-log upload (CRASHREPORT_API_KEY) is compiled out of CraftOS-Tweaked builds.
+// Its upload endpoint in win.cpp belongs to upstream; only enable it with our own endpoint.
 #if defined(_WIN32) && defined(CRASHREPORT_API_KEY)
     if (onboardingMode == 1 && !config.snooperEnabled && (selectedRenderer == 0 || selectedRenderer == 5)) {
         SDL_MessageBoxData data;
         data.title = "Allow analytics?";
-        data.message = "CraftOS-Tweaked can automatically upload crash logs to help bugs get fixed. These files are sent anonymously and don't contain direct personal data, but they do include general system information (see https://www.craftos-pc.cc/docs/privacy for more info). Would you like to allow crash logs to be uploaded?";
+        data.message = "CraftOS-Tweaked can automatically upload crash logs to help bugs get fixed. These files are sent anonymously and don't contain direct personal data, but they do include general system information (see " CRAFTOSTWEAKED_DOCS_URL "/privacy for more info). Would you like to allow crash logs to be uploaded?";
         data.colorScheme = NULL;
         data.window = NULL;
         data.flags = SDL_MESSAGEBOX_INFORMATION;
@@ -919,7 +925,7 @@ int main(int argc, char*argv[]) {
         mainLoop();
     } catch (Poco::Exception &e) {
         fprintf(stderr, "Uncaught exception on main thread: %s\n", e.displayText().c_str());
-        if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", ("Uh oh, CraftOS-Tweaked has crashed! Please report this to https://www.craftos-pc.cc/bugreport. When writing the report, include the following exception message: \"Poco exception on main thread: " + e.displayText() + "\". CraftOS-Tweaked will now close.").c_str(), NULL);
+        if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", ("Uh oh, CraftOS-Tweaked has crashed! Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". When writing the report, include the following exception message: \"Poco exception on main thread: " + e.displayText() + "\". CraftOS-Tweaked will now close.").c_str(), NULL);
         for (Computer * c : *computers) {
             c->running = 0;
             c->event_lock.notify_all();
@@ -928,7 +934,7 @@ int main(int argc, char*argv[]) {
         awaitTasks([]()->bool {return computers.locked() || !computers->empty() || !taskQueue->empty();});
     } catch (std::exception &e) {
         fprintf(stderr, "Uncaught exception on main thread: %s\n", e.what());
-        if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", (std::string("Uh oh, CraftOS-Tweaked has crashed! Please report this to https://www.craftos-pc.cc/bugreport. When writing the report, include the following exception message: \"Exception on main thread: ") + e.what() + "\". CraftOS-Tweaked will now close.").c_str(), NULL);
+        if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Uncaught Exception", (std::string("Uh oh, CraftOS-Tweaked has crashed! Please report this at " CRAFTOSTWEAKED_BUGREPORT_URL ". When writing the report, include the following exception message: \"Exception on main thread: ") + e.what() + "\". CraftOS-Tweaked will now close.").c_str(), NULL);
         for (Computer * c : *computers) {
             c->running = 0;
             c->event_lock.notify_all();
