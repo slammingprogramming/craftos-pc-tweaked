@@ -85,6 +85,8 @@ static int config_get(lua_State *L) {
     getConfigSetting(useWebP, boolean);
     getConfigSetting(dropFilePath, boolean);
     getConfigSetting(useDFPWM, boolean);
+    else if (strcmp(name, "ccVersion") == 0)
+        lua_pushstring(L, config.ccVersion.c_str());
     else if (strcmp(name, "useHDFont") == 0) {
         if (config.customFontPath.empty()) lua_pushboolean(L, false);
         else if (config.customFontPath == "hdfont") lua_pushboolean(L, true);
@@ -221,6 +223,8 @@ static int config_set(lua_State *L) {
     setConfigSetting(useWebP, boolean);
     setConfigSetting(dropFilePath, boolean);
     setConfigSetting(useDFPWM, boolean);
+    else if (strcmp(name, "ccVersion") == 0)
+        config.ccVersion = checkstring(L, 2);
     else if (strcmp(name, "useHDFont") == 0)
         config.customFontPath = lua_toboolean(L, 2) ? "hdfont" : "";
     else if (strcmp(name, "http_whitelist") == 0) {

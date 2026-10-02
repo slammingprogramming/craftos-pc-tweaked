@@ -76,9 +76,16 @@ CraftOS-PC v2.2 moves the save directory to be more appropriate for each platfor
 * Mac: `~/Library/Application Support/CraftOS-PC`
 * Linux: `$XDG_DATA_HOME/craftos-pc` or `~/.local/share/craftos-pc`
 
+## Choosing a CC: Tweaked version
+CraftOS-Tweaked emulates [CC: Tweaked](https://github.com/cc-tweaked/CC-Tweaked) and can run the ROM of several of its Minecraft versions. Release packages contain a `roms` folder next to the executable with one folder per version (currently `mc-1.20.x`, the default, and `mc-26.3`).
+* `craftos-tweaked --list-cc-versions` shows what is installed; `craftos-tweaked --cc-version mc-26.3` starts a session with another version.
+* `config set ccVersion mc-26.3` makes a version the default (restart to apply).
+* The ROMs keep their CC: Tweaked licenses, which are not the AGPL; see [roms/README.md](roms/README.md).
+* How closely the emulator follows CC: Tweaked, and what is known to differ: [docs/cc-tweaked-compatibility.md](docs/cc-tweaked-compatibility.md).
+
 ## Building
 ### Requirements
-* [CraftOS ROM package](https://github.com/MCJack123/craftos2-rom)
+* The ROMs in [`roms/`](roms/README.md) (they are part of this repository; see *Choosing a CC: Tweaked version* below)
 * Compiler supporting C++17
   * Linux: G++ 8.0+, make
   * Mac: Xcode 10.2+ CLI tools (xcode-select --install)
@@ -110,22 +117,22 @@ CraftOS-PC v2.2 moves the save directory to be more appropriate for each platfor
   * For MP3 support, libmpg123 is required
   * For FLAC support, libFLAC is required
   * For SF2 support, SDL_mixer must be built manually with fluidsynth support (or with the `fluidsynth` feature in vcpkg since July 9, 2021)
-* The path to the ROM package can be changed with `--prefix=<path>`, which will store the ROM at `<path>/share/craftos`
-* Standalone builds can be enabled with `--with-standalone-rom=<fs_standalone.cpp>`, with `<fs_standalone.cpp>` referring to the path to the packed standalone ROM file.
-  * The latest packed ROM can be downloaded as an artifact from the latest CI build, found by following the top link [here](https://github.com/MCJack123/craftos2-rom/actions).
+* `--prefix=<path>` sets the install prefix; `make install` also copies the ROMs to `<path>/share/craftos/roms`
+* Standalone builds (one ROM compiled into the executable) can be enabled with `--with-standalone-rom=<fs_standalone.cpp>`, where the file is made by `resources/packStandaloneROM.js` from one folder in `roms/` (CI does this for `roms/mc-1.20.x`).
 
 You can get all of these dependencies with:
   * Windows: `vcpkg --feature-flags=manifests install --triplet x64-windows` inside the repository directory
     * Visual Studio will do this for you automatically (as long as vcpkg integration is installed)
   * Windows (manual): `vcpkg install sdl2:x64-windows sdl2-mixer[dynamic-load,libflac,mpg123,libmodplug,libvorbis,opusfile,fluidsynth]:x64-windows pngpp:x64-windows libwebp:x64-windows libharu:x64-windows poco[netssl]:x64-windows dirent:x64-windows pdcurses:x64-windows`
-  * Mac (Homebrew): `brew install sdl2 sdl2_mixer png++ webp libharu poco ncurses; git clone https://github.com/MCJack123/craftos2-rom`
-  * Ubuntu: `sudo apt install git build-essential libsdl2-dev libsdl2-mixer-dev libhpdf-dev libpng++-dev libwebp-dev libpoco-dev libncurses5-dev; git clone https://github.com/MCJack123/craftos2-rom`
+  * Mac (Homebrew): `brew install sdl2 sdl2_mixer png++ webp libharu poco ncurses`
+  * Ubuntu: `sudo apt install git build-essential libsdl2-dev libsdl2-mixer-dev libhpdf-dev libpng++-dev libwebp-dev libpoco-dev libncurses5-dev`
   * Arch Linux: `sudo pacman -S sdl2 sdl2_mixer png++ libwebp libharu poco ncurses`
 
 ### Automated builds (GitHub Actions)
 All official builds are made by GitHub Actions, not on developer machines:
-* **CI** (`.github/workflows/main.yml`) builds and tests on every push and pull request: Linux (all features, no optional features, and standalone ROM), the CC: Tweaked test suite, and Windows x64 and ARM64. Each run uploads the Windows and Linux binaries as artifacts, which you can download from the [Actions tab](https://github.com/slammingprogramming/craftos-pc-tweaked/actions). These artifacts are raw binaries; for Windows, drop them into a directory that already contains the [ROM](https://github.com/MCJack123/craftos2-rom).
-* **Release** (`.github/workflows/release.yml`) runs when a GitHub Release is published. It rebuilds everything and attaches portable Windows (x64 and ARM64) and Linux (x86_64) packages with the ROM, plus `sha256-hashes.txt`, to the release.
+* **CI** (`.github/workflows/main.yml`) builds and tests on every push and pull request: Linux (all features, no optional features, and standalone ROM), the CC: Tweaked test suite, and Windows x64 and ARM64. Each run uploads the Windows and Linux binaries as artifacts, which you can download from the [Actions tab](https://github.com/slammingprogramming/craftos-pc-tweaked/actions). These artifacts are raw binaries; put the `roms` folder of this repository next to them.
+* **Release** (`.github/workflows/release.yml`) runs when a version tag (`v*`) is pushed. It rebuilds everything and attaches portable Windows (x64 and ARM64) and Linux (x86_64) packages (each with the `roms` folder), a `CraftOS-Tweaked-ROMs.zip` with just the ROMs, and `sha256-hashes.txt` to the release.
+* **Sync ROMs** (`.github/workflows/sync-roms.yml`) copies new CC: Tweaked ROM changes onto the `rom-sync` branch (where CI does not run) for testing; see [roms/README.md](roms/README.md).
 
 macOS, iOS and Android builds, Windows installers and distro packages are not built by CI yet.
 
@@ -140,7 +147,7 @@ Releases are tagged `vMAJOR.MINOR.PATCH` (for example `v0.1.0`); see [TODO.md](T
 2. `git submodule update --init --recursive`
 3. Open `CraftOS-Tweaked.sln` with VS
 4. Build solution
-5. Copy all files from the ROM into the same directory as the new executable (ex. `craftos2\x64\Release`)
+5. Copy the `roms` folder of this repository into the same directory as the new executable (ex. `x64\Release`)
 6. Run solution
 
 The solution has a few different build configurations:
@@ -159,7 +166,7 @@ The solution has a few different build configurations:
 7. Open the repository in a new Finder window
 8. Right click on CraftOS-Tweaked.app => Show Package Contents
 9. Open Contents -> Resources
-10. Copy the ROM package inside
+10. Copy the `roms` folder of this repository inside
 11. Run CraftOS-Tweaked.app
 
 #### Linux (or Mac as non-app binary)
@@ -169,15 +176,15 @@ The solution has a few different build configurations:
 4. `make -C craftos2-lua linux`
 5. `./configure`
 6. `make`
-7. `sudo mkdir /usr/local/share/craftos`
-8. Copy the ComputerCraft ROM into `/usr/local/share/craftos/`
-9. `./craftos-tweaked`
+7. `./craftos-tweaked` (it finds the `roms` folder of the repository next to it; `sudo make install` installs system-wide)
 
 ## FAQ
 *This FAQ is carried over from the original CraftOS-PC 2 README and is written in its author's voice; "CraftOS-PC" below refers to the original project.*
 
 ### Why is the ComputerCraft ROM/BIOS not included with the source?
-ComputerCraft and its assets are distributed under their own licenses, which are separate from this project's, so the original ComputerCraft ROM/BIOS files are not included with the source. You can acquire the ROM [separately](https://github.com/MCJack123/craftos2-rom).
+*Upstream's answer:* ComputerCraft and its assets are distributed under their own licenses, which are separate from this project's, so the original CraftOS-PC 2 kept the ROM in a separate repository.
+
+*In CraftOS-Tweaked* the ROMs are in this repository's `roms/` folder, kept clearly apart from the emulator's code, with their own licenses (mostly the ComputerCraft Public License and MPL-2.0) stated per file. See [roms/README.md](roms/README.md).
 
 ### Why did you choose C++?
 Since the original ComputerCraft code is written in Java, it may seem like a better idea to create an emulator based on the original mod code. But I found that using native C++ lets the emulator run much better than if it was in Java.

@@ -34,7 +34,8 @@ extern "C" {
 // updater compares this string against the latest release tag of CRAFTOSTWEAKED_REPO, and the release workflow
 // refuses to publish a tag that differs from it (or while CRAFTOSPC_INDEV is true). See TODO.md.
 #define CRAFTOSPC_VERSION    "v0.1.0"
-#define CRAFTOSPC_CC_VERSION "1.116.1"
+// Only a fallback: the version reported to programs comes from the selected ROM (see ccVersionString()).
+#define CRAFTOSPC_CC_VERSION "1.120.2"
 #define CRAFTOSPC_INDEV      true
 
 // Project locations. These are placeholders until the project has its own
@@ -47,6 +48,9 @@ extern "C" {
 // PLACEHOLDER: this is still the upstream CraftOS-PC 2 documentation, which
 // mostly applies to CraftOS-Tweaked until we host our own.
 #define CRAFTOSTWEAKED_DOCS_URL     "https://www.craftos-pc.cc/docs"
+
+// The CC: Tweaked version that is emulated unless the user picks another one (a folder inside "roms").
+#define CRAFTOSTWEAKED_DEFAULT_CC_VERSION "mc-1.20.x"
 
 using path_t = std::filesystem::path;
 namespace fs = std::filesystem;
@@ -209,6 +213,25 @@ extern const wchar_t charsetConversion[256];
 extern std::string loadingPlugin;
 extern const char * lastCFunction;
 
+// CC: Tweaked versions. Each emulated version is a ROM folder ("roms/<id>", for example "roms/mc-1.20.x") holding
+// that version's bios.lua and rom/ directory plus a rom-info.json that says which CC: Tweaked release it is.
+struct ROMVersion {
+    std::string id;                 // folder name, e.g. "mc-1.20.x"
+    path_t path;                    // the ROM folder
+    std::string ccVersion;          // CC: Tweaked version, e.g. "1.120.2" ("" if unknown)
+    std::string minecraftVersion;   // e.g. "1.20.1" ("" if unknown)
+    std::string upstreamBranch;     // CC: Tweaked branch the ROM came from
+    std::string upstreamCommit;     // and the commit
+    bool glfwKeys = false;          // key events carry GLFW key codes (every CC: Tweaked since 1.109) instead of LWJGL 2 ones
+};
+extern std::vector<path_t> romSearchDirectories();                          // folders that may contain "roms"
+extern std::vector<ROMVersion> findROMVersions();                           // every installed ROM version
+extern bool selectROMVersion(const std::string& id, std::string& error);    // points the ROM path at version id
+extern void useEmbeddedROMInfo(const std::string& json);                       // standalone builds: describes the embedded ROM
+extern void useROMFolder(const path_t& dir);                                  // uses an explicit ROM folder (--rom)
+extern const ROMVersion& activeROMVersion();                                // the ROM that is in use (id empty if a custom ROM path is used)
+extern const std::string& ccVersionString();                                // CC: Tweaked version reported to Lua and in HTTP requests
+
 // Crash logs. When CraftOS-Tweaked crashes, the platform crash handler saves a text report to
 // <data dir>/crash-logs/. Nothing is ever sent anywhere automatically: on the next start the user is offered
 // a button that opens a pre-filled GitHub issue (see offerPendingCrashReport in main.cpp).
@@ -226,6 +249,10 @@ extern int openCrashLog();                                                   // 
 #endif
 extern Computer * get_comp(lua_State *L);
 extern void uncache_state(lua_State *L);
+// Copies the top n values of one Lua state to another the way CC: Tweaked hands arguments to events: strings, numbers
+// and booleans are copied, tables are copied deeply (references inside one argument are kept, references between
+// arguments are not), and everything else (functions, userdata, threads) becomes nil. Metatables are dropped.
+extern void ccCloneValues(lua_State *from, lua_State *to, int n);
 
 template<typename T>
 inline T min(T a, T b) { return a < b ? a : b; }

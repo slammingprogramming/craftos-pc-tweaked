@@ -1,0 +1,8 @@
+{
+  "upstream": "https://github.com/cc-tweaked/CC-Tweaked",
+  "default": "mc-1.20.x",
+  "versions": [
+    { "id": "mc-1.20.x", "branch": "mc-1.20.x" },
+    { "id": "mc-26.3", "branch": "mc-26.3" }
+  ]
+}

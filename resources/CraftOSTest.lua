@@ -256,7 +256,10 @@ testStart "fs"
 	test("getDir", "rom/programs", "/rom/programs/shell.lua")
 	test("getDrive", "rom", "/rom/programs/shell.lua")
 	local s = call("getSize", "/rom/apis/keys.lua")
-	if s ~= 2622 and s ~= 2691 then testLocal("fs.getSize", {2622, 2691}, s) end -- CRLF or LF
+	local keysFile = fs.open("/rom/apis/keys.lua", "rb")
+	local keysSize = #keysFile.readAll()
+	keysFile.close()
+	testLocal("fs.getSize", s, keysSize)
 	call("makeDir", "test_dir")
 	test("isDir", true, "test_dir")
 	call("delete", "test_dir")
@@ -338,14 +341,15 @@ testStart "io"
 testEnd()
 
 testStart "keys"
-	testValue("a", 30)
-	testValue("z", 44)
-	testValue("zero", 11)
-	testValue("rightCtrl", 157)
-	test("getName", "a", 30)
-	test("getName", "z", 44)
-	test("getName", "zero", 11)
-	test("getName", "rightCtrl", 157)
+	-- CC: Tweaked uses GLFW key codes
+	testValue("a", 65)
+	testValue("z", 90)
+	testValue("zero", 48)
+	testValue("rightCtrl", 345)
+	test("getName", "a", 65)
+	test("getName", "z", 90)
+	test("getName", "zero", 48)
+	test("getName", "rightCtrl", 345)
 testEnd()
 
 testStart "math"
@@ -470,7 +474,6 @@ testStart "settings"
 	call("set", "test2", "hello")
 	test("getNames", {{
 		"bios.strict_globals",
-		"bios.use_cash",
 		"bios.use_multishell",
 		"edit.autocomplete",
 		"edit.default_extension",
@@ -487,7 +490,6 @@ testStart "settings"
 		"shell.autocomplete",
 		"shell.autocomplete_hidden",
 		"shell.mobile_resize_with_keyboard",
-		"shell.package_path",
 		"shell.report_plugin_errors",
 		"test",
 		"test2"
@@ -520,7 +522,7 @@ testStart "shell"
 	call("clearAlias", "del")
 	testLocal("shell.programs", type(call("programs")), "table")
 	local runningProgram = callLocal("fs.getName", fs.getName, call("getRunningProgram"))
-	if runningProgram ~= "CraftOSTest.lua" and runningProgram ~= "startup.lua" then testLocal("shell.getRunningProgram", runningProgram, "CraftOSTest.lua or startup.lua") end
+	if runningProgram ~= "CraftOSTest.lua" and runningProgram ~= "startup.lua" and runningProgram ~= "00_craftos_tweaked.lua" then testLocal("shell.getRunningProgram", runningProgram, "CraftOSTest.lua, startup.lua or 00_craftos_tweaked.lua") end
 	test("completeProgram", {{"abel", "ist", "s", "ua"}}, "l")
 	call("setDir", oldDir)
 	call("setPath", oldPath)

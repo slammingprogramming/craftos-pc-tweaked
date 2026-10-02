@@ -41,9 +41,8 @@ static int os_queueEvent(lua_State *L) {
     lua_State *param = lua_newthread(computer->paramQueue);
     lua_remove(L, 1);
     const int count = lua_gettop(L);
-    lua_checkstack(param, count);
-    if (config.standardsMode) xcopy(L, param, count);
-    else lua_xmove(L, param, count);
+    lua_checkstack(param, count + 8);
+    ccCloneValues(L, param, count); // CC: Tweaked copies event arguments instead of sharing them
     computer->eventQueue.push(name);
     computer->event_lock.notify_all();
     return 0;

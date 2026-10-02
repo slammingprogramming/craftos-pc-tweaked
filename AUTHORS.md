@@ -55,9 +55,23 @@ Carried over from the original CraftOS-PC 2:
 * Everyone on the Minecraft Computer Mods Discord server for their support
   during the development of CraftOS-PC 2
 
+## CC: Tweaked and ComputerCraft
+
+The ROMs in [`roms/`](roms/README.md) are the Lua side of [CC: Tweaked](https://github.com/cc-tweaked/CC-Tweaked) and
+of the original ComputerCraft, and everything CraftOS-Tweaked emulates is theirs:
+
+* **Daniel Ratcliffe** ([@dan200](https://github.com/dan200)) — created ComputerCraft
+* **Jonathan Coates** ([@SquidDev](https://github.com/SquidDev)) and **the CC: Tweaked developers** — maintain CC: Tweaked;
+  see its [contributors](https://github.com/cc-tweaked/CC-Tweaked/graphs/contributors)
+
+Their files keep their copyright and license headers (`LicenseRef-CCPL`, `MPL-2.0`, ...); nothing in them is edited.
+
 ## Third-party code and assets
 
 These keep their own licenses and are not relicensed:
+
+* **ROMs** (`roms/`) — CC: Tweaked and ComputerCraft, and the emulator's own programs by JackMacWindows, under the
+  licenses stated in each file (see [`roms/README.md`](roms/README.md))
 
 * **Plugin templates** `examples/peripheral_base.cpp` and
   `examples/plugin_base.cpp` — JackMacWindows, released into the public domain

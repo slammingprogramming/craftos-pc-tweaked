@@ -121,24 +121,41 @@ static std::vector<path_t> fixpath_multiple(Computer *comp, std::string path) {
     return retval;
 }
 
-static std::string normalizePath(const path_t& basePath, bool allowWildcards = false) {
-    path_t cleanPath;
-    for (const auto& p : basePath) {
-        path_t::string_type str = p.native();
-        str.erase(std::remove_if(str.begin(), str.end(), [allowWildcards](path_t::string_type::value_type c)->bool {return c == '"' || (c == '*' && !allowWildcards) || c == ':' || c == '<' || c == '>' || (c == '?' && !allowWildcards) || c == '|' || c < 32;}), str.end());
-        if (std::regex_match(str, pathregex("^\\.\\.\\.+$"))) cleanPath /= ".";
-        else cleanPath /= path_t(str);
+// A straight port of FileSystem.sanitizePath from CC: Tweaked, so that fs.combine, fs.getDir and fs.getName treat every
+// odd path (backslashes, illegal characters, "..", ". .", very long names) exactly like CC: Tweaked does.
+static std::string normalizePath(const std::string& input, bool allowWildcards = false) {
+    // Allow windowsy slashes, and drop control characters and characters that are not allowed in names
+    std::string path;
+    for (char c : input) {
+        if (c == '\\') c = '/';
+        if ((unsigned char)c < 32 || c == '"' || c == ':' || c == '<' || c == '>' || c == '|' || (!allowWildcards && (c == '*' || c == '?'))) continue;
+        path += c;
     }
-    cleanPath = cleanPath.lexically_normal();
-    if (path_t::preferred_separator != (path_t::value_type)'/') {
-        path_t::string_type str = cleanPath.native();
-        std::replace(str.begin(), str.end(), path_t::preferred_separator, (path_t::value_type)'/');
-        cleanPath = path_t(str);
+    // Collapse the string into its component parts, removing ..'s
+    std::vector<std::string> parts;
+    size_t start = 0;
+    while (start <= path.size()) {
+        size_t end = path.find('/', start);
+        if (end == std::string::npos) end = path.size();
+        std::string part = path.substr(start, end - start);
+        start = end + 1;
+        const auto strip = [](std::string& s) {
+            const size_t first = s.find_first_not_of(' ');
+            if (first == std::string::npos) {s.clear(); return;}
+            s = s.substr(first, s.find_last_not_of(' ') - first + 1);
+        };
+        strip(part);
+        if (part.size() > 255) {part = part.substr(0, 255); strip(part);} // limit part length to 255
+        if (part == "..") {
+            // .. can cancel out the last folder entered
+            if (parts.empty() || parts.back() == "..") parts.push_back("..");
+            else parts.pop_back();
+        } else if (part.empty() || (part[0] == '.' && part.find_first_not_of(". ") == std::string::npos)) {
+            // skip empty paths, ".", or any other sequence of "[. ]+" (as this is also treated as "." on Windows)
+        } else parts.push_back(part);
     }
-    std::string retval = cleanPath.string();
-    if (retval == ".") retval = "";
-    if (!retval.empty() && retval[0] == '/') retval = retval.substr(1);
-    if (!retval.empty() && retval[retval.size()-1] == '/') retval = retval.substr(0, retval.size()-1);
+    std::string retval;
+    for (const std::string& p : parts) retval += (retval.empty() ? "" : "/") + p;
     return retval;
 }
 
@@ -249,9 +266,9 @@ static int fs_isReadOnly(lua_State *L) {
 
 static int fs_getName(lua_State *L) {
     lastCFunction = __func__;
-    std::string retval = path_t(normalizePath(checkstring(L, 1), true)).filename().string();
-    if (retval.empty()) lua_pushliteral(L, "root");
-    else pushstring(L, retval);
+    const std::string path = normalizePath(checkstring(L, 1), true);
+    if (path.empty()) lua_pushliteral(L, "root");
+    else pushstring(L, path.substr(path.rfind('/') == std::string::npos ? 0 : path.rfind('/') + 1));
     return 1;
 }
 
@@ -317,6 +334,7 @@ static int fs_makeDir(lua_State *L) {
     if (path.empty()) err(L, 1, "Could not create directory");
     if (std::regex_search((*path.begin()).native(), pathregex("^\\d+:"))) err(L, 1, "Permission denied");
     std::error_code e;
+    if (fs::exists(path, e) && !fs::is_directory(path, e)) err(L, 1, "File exists");
     fs::create_directories(path, e);
     if (e) {
         if (e.value() == ENOTDIR) e.assign(EEXIST, std::generic_category());
@@ -420,13 +438,13 @@ static int fs_delete(lua_State *L) {
 
 static int fs_combine(lua_State *L) {
     lastCFunction = __func__;
-    path_t basePath = path_t(checkstring(L, 1), path_t::format::generic_format);
-    for (int i = 2; i <= lua_gettop(L); i++) if (!checkstring(L, i).empty()) {
-        std::string str = tostring(L, i);
-        if (str[0] == '/' || str[0] == '\\') str = str.substr(1);
-        basePath /= str;
+    std::string result = normalizePath(checkstring(L, 1), true);
+    for (int i = 2; i <= lua_gettop(L); i++) {
+        const std::string part = normalizePath(checkstring(L, i), true);
+        if (!result.empty() && !part.empty()) result += '/';
+        result += part;
     }
-    pushstring(L, normalizePath(basePath, true));
+    pushstring(L, normalizePath(result, true));
     return 1;
 }
 
@@ -688,13 +706,16 @@ static int fs_find(lua_State *L) {
 
 static int fs_getDir(lua_State *L) {
     lastCFunction = __func__;
-    path_t path = path_t(normalizePath(checkstring(L, 1), true));
-    if (path.empty() || path.string() == "/") {
+    const std::string path = normalizePath(checkstring(L, 1), true);
+    if (path.empty()) {
         lua_pushliteral(L, "..");
         return 1;
     }
-    if (!path.has_filename()) path = path.parent_path();
-    pushstring(L, path.parent_path().string());
+    const size_t lastSlash = path.rfind('/');
+    // If the trailing segment is a "..", then just append another one.
+    if (path.substr(lastSlash == std::string::npos ? 0 : lastSlash + 1) == "..") pushstring(L, path + "/..");
+    else if (lastSlash != std::string::npos) pushstring(L, path.substr(0, lastSlash));
+    else lua_pushliteral(L, "");
     return 1;
 }
 

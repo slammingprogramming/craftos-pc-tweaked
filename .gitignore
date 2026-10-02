@@ -43,4 +43,4 @@ vcpkg_installed
 /ignored.txt
 *.dylib
 *.so
-*.bundle
+*.bundleroms/*/fs_standalone.cpp

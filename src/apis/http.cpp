@@ -231,7 +231,8 @@ downloadThread_entry:
             path = urlEncode(pos != std::string::npos ? param->url.substr(pos, hash - pos) : "/");
             if (uri.getHost() == "localhost") {isLocalhost = true; uri.setHost("127.0.0.1");}
             bool found = false;
-            for (const std::string& wclass : config.http_whitelist) {
+            if (uri.getHost().find('%') != std::string::npos) status = "Scoped address not permitted"; // like CC: Tweaked
+            else for (const std::string& wclass : config.http_whitelist) {
                 if (matchIPClass(uri.getHost(), wclass)) {
                     found = true;
                     for (const std::string& bclass : config.http_blacklist) {
@@ -243,7 +244,7 @@ downloadThread_entry:
                     if (!found) break;
                 }
             }
-            if (!found) status = "Domain not permitted";
+            if (!found) {if (status.empty()) status = "Domain not permitted";}
             else if (uri.getScheme() == "http") {
                 session = new HTTPClientSession(uri.getHost(), uri.getPort());
             } else if (uri.getScheme() == "https") {
@@ -279,7 +280,7 @@ downloadThread_entry:
         size_t requestSize = param->postData.size();
         for (const auto& h : param->headers) {request.add(h.first, h.second); requestSize += h.first.size() + h.second.size() + 1;}
         if (isLocalhost) request.add("Host", "localhost:" + std::to_string(uri.getPort()));
-        if (!request.has("User-Agent")) request.add("User-Agent", "computercraft/" CRAFTOSPC_CC_VERSION " CraftOS-Tweaked/" CRAFTOSPC_VERSION);
+        if (!request.has("User-Agent")) request.add("User-Agent", std::string("computercraft/") + ccVersionString() + " CraftOS-Tweaked/" CRAFTOSPC_VERSION);
         if (!request.has("Accept-Charset")) request.add("Accept-Charset", "UTF-8");
         if (!param->postData.empty()) {
             if (request.getContentLength() == HTTPRequest::UNKNOWN_CONTENT_LENGTH) request.setContentLength(param->postData.size());
@@ -425,7 +426,7 @@ void HTTPDownload(const std::string& url, const std::function<void(std::istream*
     HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
     HTTPResponse response;
     session.setTimeout(Poco::Timespan(5000000));
-    request.add("User-Agent", "CraftOS-Tweaked/" CRAFTOSPC_VERSION " ComputerCraft/" CRAFTOSPC_CC_VERSION);
+    request.add("User-Agent", std::string("CraftOS-Tweaked/" CRAFTOSPC_VERSION " ComputerCraft/") + ccVersionString());
     try {
         session.sendRequest(request);
         std::istream& stream = session.receiveResponse(response);
@@ -458,7 +459,8 @@ static void* checkThread(void* arg) {
         }
         if (status.empty()) {
             bool found = false;
-            for (const std::string& wclass : config.http_whitelist) {
+            if (uri.getHost().find('%') != std::string::npos) status = "Scoped address not permitted"; // like CC: Tweaked
+            else for (const std::string& wclass : config.http_whitelist) {
                 if (matchIPClass(uri.getHost(), wclass)) {
                     found = true;
                     for (const std::string& bclass : config.http_blacklist) {
@@ -470,7 +472,7 @@ static void* checkThread(void* arg) {
                     if (!found) break;
                 }
             }
-            if (!found) status = "Domain not permitted";
+            if (status.empty() && !found) status = "Domain not permitted";
         }
     }
     http_check_t * res = new http_check_t;
@@ -1134,7 +1136,8 @@ static void websocket_client_thread(Computer *comp, const std::string& str, cons
     }
     if (uri.getHost() == "localhost") uri.setHost("127.0.0.1");
     bool found = false;
-    for (const std::string& wclass : config.http_whitelist) {
+    const bool scoped = uri.getHost().find('%') != std::string::npos; // like CC: Tweaked, scoped addresses are refused
+    if (!scoped) for (const std::string& wclass : config.http_whitelist) {
         if (matchIPClass(uri.getHost(), wclass)) {
             found = true;
             for (const std::string& bclass : config.http_blacklist) {
@@ -1149,7 +1152,7 @@ static void websocket_client_thread(Computer *comp, const std::string& str, cons
     if (!found) {
         websocket_failure_data * data = new websocket_failure_data;
         data->url = str;
-        data->reason = "Domain not permitted";
+        data->reason = scoped ? "Scoped address not permitted" : "Domain not permitted";
         queueEvent(comp, websocket_failure, data);
         return;
     }
@@ -1178,7 +1181,7 @@ static void websocket_client_thread(Computer *comp, const std::string& str, cons
     if (!config.http_proxy_server.empty()) cs->setProxy(config.http_proxy_server, config.http_proxy_port);
     HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
     for (std::pair<std::string, std::string> h : headers) request.set(h.first, h.second);
-    if (!request.has("User-Agent")) request.add("User-Agent", "computercraft/" CRAFTOSPC_CC_VERSION " CraftOS-Tweaked/" CRAFTOSPC_VERSION);
+    if (!request.has("User-Agent")) request.add("User-Agent", std::string("computercraft/") + ccVersionString() + " CraftOS-Tweaked/" CRAFTOSPC_VERSION);
     if (!request.has("Accept-Charset")) request.add("Accept-Charset", "UTF-8");
     HTTPResponse response;
     WebSocket* ws;

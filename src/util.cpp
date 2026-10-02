@@ -9,10 +9,13 @@
  * Originally released under the MIT License; see the LICENSE file.
  */
 
+#include <array>
 #include <atomic>
+#include <cstring>
 #include <sstream>
 #include <Computer.hpp>
 #include <dirent.h>
+#include <Poco/Net/IPAddress.h>
 #include <Poco/Base64Decoder.h>
 #include <Poco/Base64Encoder.h>
 #include <sys/stat.h>
@@ -396,65 +399,99 @@ std::string makeASCIISafe(const char * retval, size_t len) {
     return std::string(retval, len);
 }
 
-struct IPv6 {uint16_t a, b, c, d, e, f, g, h;};
+// Addresses are handled as 16 bytes (IPv4 addresses as IPv4-mapped IPv6 ones), so that one prefix match covers both.
+using IPBytes = std::array<uint8_t, 16>;
 
-static constexpr uint32_t makeIP(int a, int b, int c, int d) {return (a << 24) | (b << 16) | (c << 8) | d;}
+static IPBytes ipv4Bytes(int a, int b, int c, int d) {
+    return IPBytes{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, (uint8_t)a, (uint8_t)b, (uint8_t)c, (uint8_t)d};
+}
 
-static std::vector<std::pair<uint32_t, uint8_t> > reservedIPv4s = {
-    {makeIP(0, 0, 0, 0), 32},
-    {makeIP(10, 0, 0, 0), 8},
-    {makeIP(100, 64, 0, 0), 10},
-    {makeIP(127, 0, 0, 0), 8},
-    {makeIP(169, 254, 0, 0), 16},
-    {makeIP(172, 16, 0, 0), 12},
-    {makeIP(192, 0, 0, 0), 24},
-    {makeIP(192, 0, 2, 0), 24},
-    {makeIP(192, 168, 0, 0), 16},
-    {makeIP(198, 18, 0, 0), 15},
-    {makeIP(224, 0, 0, 0), 4},
-    {makeIP(255, 255, 255, 255), 32}
-};
+// Parses an IPv4 or IPv6 literal (IPv6 may be in brackets). Returns false for anything else, such as host names.
+static bool parseIPLiteral(std::string text, IPBytes& out) {
+    if (text.size() > 1 && text.front() == '[' && text.back() == ']') text = text.substr(1, text.size() - 2);
+    if (text.find('%') != std::string::npos) return false; // scoped addresses are refused elsewhere
+    Poco::Net::IPAddress ip;
+    if (!Poco::Net::IPAddress::tryParse(text, ip)) return false;
+    if (ip.family() == Poco::Net::IPAddress::IPv4) {
+        const uint8_t * b = (const uint8_t*)ip.addr();
+        out = ipv4Bytes(b[0], b[1], b[2], b[3]);
+    } else {
+        std::memcpy(out.data(), ip.addr(), 16);
+    }
+    return true;
+}
 
-static std::vector<std::pair<IPv6, uint8_t> > reservedIPv6s = {
-    {{0, 0, 0, 0, 0, 0, 0, 0}, 128},
-    {{0, 0, 0, 0, 0, 0, 0, 1}, 128},
-    {{0xfc00, 0, 0, 0, 0, 0, 0, 0}, 7},
-    {{0xfd00, 0, 0, 0, 0, 0, 0, 0}, 8},
-    {{0xfe80, 0, 0, 0, 0, 0, 0, 0}, 10},
-    {{0xfec0, 0, 0, 0, 0, 0, 0, 0}, 10},
-    {{0xff00, 0, 0, 0, 0, 0, 0, 0}, 8}
-};
+static bool inNetwork(const IPBytes& address, const IPBytes& network, int bits) {
+    for (int i = 0; i < 16 && bits > 0; i++, bits -= 8) {
+        const uint8_t mask = bits >= 8 ? 0xff : (uint8_t)(0xff << (8 - bits));
+        if ((address[i] & mask) != (network[i] & mask)) return false;
+    }
+    return true;
+}
 
-static std::atomic_bool didAddIPv4IPs(false);
+// The addresses behind "$private", the same ones CC: Tweaked's AddressPredicate.PrivatePattern refuses: the
+// unspecified, loopback, link-local, site-local and multicast addresses, plus the extra ranges IANA reserves.
+// IPv4 ranges are written as IPv6 prefixes (96 + the IPv4 prefix length).
+static const std::vector<std::pair<IPBytes, int> >& privateRanges() {
+    static const std::vector<std::pair<IPBytes, int> > ranges = [] {
+        std::vector<std::pair<IPBytes, int> > r;
+        const auto v4 = [&r](int a, int b, int c, int d, int bits) {r.push_back({ipv4Bytes(a, b, c, d), 96 + bits});};
+        v4(0, 0, 0, 0, 32);        // 0.0.0.0
+        v4(10, 0, 0, 0, 8);        // site-local
+        v4(100, 64, 0, 0, 10);     // shared address space (carrier-grade NAT)
+        v4(127, 0, 0, 0, 8);       // loopback
+        v4(169, 254, 0, 0, 16);    // link-local
+        v4(172, 16, 0, 0, 12);     // site-local
+        v4(192, 0, 0, 0, 24);      // IETF protocol assignments
+        v4(192, 0, 2, 0, 24);      // TEST-NET-1
+        v4(192, 88, 99, 0, 24);    // 6to4 relay anycast
+        v4(192, 168, 0, 0, 16);    // site-local
+        v4(198, 18, 0, 0, 15);     // benchmark testing
+        v4(198, 51, 100, 0, 24);   // TEST-NET-2
+        v4(203, 0, 113, 0, 24);    // TEST-NET-3
+        v4(224, 0, 0, 0, 4);       // multicast
+        const auto v6 = [&r](std::initializer_list<uint16_t> groups, int bits) {
+            IPBytes b{};
+            int i = 0;
+            for (uint16_t g : groups) {b[i++] = g >> 8; b[i++] = g & 0xff;}
+            r.push_back({b, bits});
+        };
+        v6({0, 0, 0, 0, 0, 0, 0, 0}, 128);      // ::
+        v6({0, 0, 0, 0, 0, 0, 0, 1}, 128);      // ::1, loopback
+        v6({0xfe80}, 10);                        // link-local
+        v6({0xfec0}, 10);                        // site-local
+        v6({0xff00}, 8);                         // multicast
+        v6({0x64, 0xff9b}, 96);                  // IPv4/IPv6 translation
+        v6({0x64, 0xff9b, 1}, 48);               // local-use IPv4/IPv6 translation
+        v6({0x2001}, 23);                        // IETF protocol assignments (Teredo, ORCHID, ...)
+        v6({0xfc00}, 7);                         // unique local addresses
+        return r;
+    }();
+    return ranges;
+}
 
 bool matchIPClass(const std::string& address, const std::string& pattern) {
-    static const std::regex ipv4_regex("(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)");
-    static const std::regex ipv6_regex("");
-    static const std::regex ipv4_class_regex("(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)/(\\d+)");
     static const std::regex regex_escape("[\\^\\$\\\\\\.\\+\\?\\(\\)\\[\\]\\{\\}\\|]");
     static const std::regex regex_wildcard("\\*");
-    if (!didAddIPv4IPs.load()) {
-        didAddIPv4IPs.store(true);
-        reservedIPv6s.reserve(reservedIPv6s.size() + reservedIPv4s.size());
-        for (const auto& cl : reservedIPv4s)
-            reservedIPv6s.push_back(std::make_pair<IPv6, uint8_t>({0, 0, 0, 0, 0, 0xffff, (uint16_t)(cl.first >> 16), (uint16_t)(cl.first & 0xFFFF)}, cl.second + 96));
-    }
-    std::smatch pmatch, amatch;
     const std::regex patreg(std::regex_replace(std::regex_replace(pattern, regex_escape, "\\$&"), regex_wildcard, ".*"));
     if ((pattern == "$private" && address == "localhost") || std::regex_match(address, patreg)) return true;
-    else if (std::regex_match(address, amatch, ipv4_regex)) {
-        const int a1 = std::stoi(amatch[1]), a2 = std::stoi(amatch[2]), a3 = std::stoi(amatch[3]), a4 = std::stoi(amatch[4]);
-        const uint32_t ip = makeIP(a1, a2, a3, a4);
-        if (std::regex_match(pattern, pmatch, ipv4_class_regex)) {
-            const int b1 = std::stoi(pmatch[1]), b2 = std::stoi(pmatch[2]), b3 = std::stoi(pmatch[3]), b4 = std::stoi(pmatch[4]);
-            const uint32_t pattern_ip = makeIP(b1, b2, b3, b4);
-            const uint32_t netmask = 0xFFFFFFFFu << std::stoi(pmatch[5]);
-            return (pattern_ip & netmask) == (ip & netmask);
-        } else if (pattern == "$private")
-            for (const auto& cl : reservedIPv4s)
-                if ((ip & (0xFFFFFFFFu << cl.second)) == cl.first) return true;
-    } // check IPv6 addresses
-    return false;
+    IPBytes ip;
+    if (!parseIPLiteral(address, ip)) return false; // a host name: only the wildcard match above applies
+    if (pattern == "$private") {
+        for (const auto& range : privateRanges()) if (inNetwork(ip, range.first, range.second)) return true;
+        return false;
+    }
+    // "<address>/<bits>": a network of IPv4 or IPv6 addresses
+    const size_t slash = pattern.find('/');
+    if (slash == std::string::npos) return false;
+    IPBytes network;
+    if (!parseIPLiteral(pattern.substr(0, slash), network)) return false;
+    char * end = NULL;
+    const long bits = strtol(pattern.c_str() + slash + 1, &end, 10);
+    if (end == pattern.c_str() + slash + 1 || *end != 0 || bits < 0) return false;
+    const bool networkIsV4 = inNetwork(network, ipv4Bytes(0, 0, 0, 0), 96);
+    if (bits > (networkIsV4 ? 32 : 128)) return false;
+    return inNetwork(ip, network, (int)bits + (networkIsV4 ? 96 : 0));
 }
 
 
@@ -496,11 +533,11 @@ size_t beginCrashReport(char * buf, size_t size, const char * platform, const ch
 #if defined(CRAFTOSPC_COMMIT)
         " (commit " CRAFTOSPC_COMMIT ")"
 #endif
-        "\nComputerCraft version: " CRAFTOSPC_CC_VERSION "\n"
+        "\nCC: Tweaked version: %s (%s)\n"
         "Platform: %s\n"
         "Time (UTC): %s\n"
         "Reason: %s\n",
-        platform, when, reason);
+        ccVersionString().c_str(), activeROMVersion().id.empty() ? "custom ROM" : activeROMVersion().id.c_str(), platform, when, reason);
     if (n < 0) return 0;
     if ((size_t)n >= size) return size - 1;
     return (size_t)n;
@@ -619,4 +656,157 @@ std::string crashLogFolderURL() {
         else {static const char hex[] = "0123456789ABCDEF"; out += '%'; out += hex[c >> 4]; out += hex[c & 15];}
     }
     return out;
+}
+
+
+/* ---- CC: Tweaked version selection ---- */
+
+static ROMVersion currentROMVersion;
+
+std::vector<path_t> romSearchDirectories() {
+    std::vector<path_t> dirs;
+    if (const char * env = getenv("CRAFTOS_TWEAKED_ROMS")) if (*env) dirs.push_back(env);
+#if !defined(__EMSCRIPTEN__) && !defined(__ANDROID__) && !defined(__IPHONEOS__)
+    if (char * base = SDL_GetBasePath()) { // the folder that holds the executable
+        dirs.push_back(path_t(base) / "roms");
+        SDL_free(base);
+    }
+#endif
+    dirs.push_back(getBasePath() / "roms");
+    dirs.push_back(getROMPath() / "roms");
+    dirs.push_back(getROMPath()); // --rom may name a folder of ROMs
+#ifdef __linux__
+    dirs.push_back("/usr/local/share/craftos-tweaked/roms");
+    dirs.push_back("/usr/share/craftos-tweaked/roms");
+#endif
+    std::vector<path_t> unique;
+    for (const path_t& d : dirs) if (std::find(unique.begin(), unique.end(), d) == unique.end()) unique.push_back(d);
+    return unique;
+}
+
+static void readROMInfo(std::istream& in, ROMVersion& v) {
+    try {
+        Poco::JSON::Parser parser;
+        Poco::JSON::Object::Ptr info = parser.parse(in).extract<Poco::JSON::Object::Ptr>();
+        if (info->has("computercraft_version")) v.ccVersion = info->getValue<std::string>("computercraft_version");
+        if (info->has("minecraft_version")) v.minecraftVersion = info->getValue<std::string>("minecraft_version");
+        if (info->has("upstream_branch")) v.upstreamBranch = info->getValue<std::string>("upstream_branch");
+        if (info->has("upstream_commit")) v.upstreamCommit = info->getValue<std::string>("upstream_commit");
+        // A ROM that came from CC: Tweaked uses GLFW key codes; "key_codes" can say otherwise ("lwjgl" or "glfw")
+        v.glfwKeys = info->has("computercraft_version");
+        if (info->has("key_codes")) v.glfwKeys = info->getValue<std::string>("key_codes") == "glfw";
+    } catch (...) {}
+}
+
+static ROMVersion readROMVersion(const path_t& dir) {
+    ROMVersion v;
+    v.id = dir.filename().string();
+    v.path = dir;
+    std::ifstream in(dir / "rom-info.json");
+    if (in.is_open()) readROMInfo(in, v);
+    return v;
+}
+
+void useEmbeddedROMInfo(const std::string& json) {
+    ROMVersion v;
+    v.id = "embedded";
+    std::istringstream in(json);
+    if (!json.empty()) readROMInfo(in, v);
+    currentROMVersion = v;
+}
+
+std::vector<ROMVersion> findROMVersions() {
+    std::vector<ROMVersion> versions;
+    for (const path_t& root : romSearchDirectories()) {
+        std::error_code ec;
+        for (fs::directory_iterator it(root, ec), end; !ec && it != end; it.increment(ec)) {
+            if (!it->is_directory(ec) || !fs::exists(it->path() / "bios.lua", ec)) continue;
+            const std::string id = it->path().filename().string();
+            // the first folder found wins when the same version is installed in several places
+            if (std::none_of(versions.begin(), versions.end(), [&id](const ROMVersion& v) {return v.id == id;}))
+                versions.push_back(readROMVersion(it->path()));
+        }
+    }
+    std::sort(versions.begin(), versions.end(), [](const ROMVersion& a, const ROMVersion& b) {return a.id < b.id;});
+    return versions;
+}
+
+bool selectROMVersion(const std::string& id, std::string& error) {
+    // the search directories were not checked in order by findROMVersions, so look for the requested id in order
+    for (const path_t& root : romSearchDirectories()) {
+        std::error_code ec;
+        if (fs::exists(root / id / "bios.lua", ec)) {
+            currentROMVersion = readROMVersion(root / id);
+            setROMPath(root / id);
+            return true;
+        }
+    }
+    error = "Could not find the CC: Tweaked ROM \"" + id + "\". Looked in:";
+    for (const path_t& root : romSearchDirectories()) error += "\n  " + root.string();
+    const std::vector<ROMVersion> available = findROMVersions();
+    if (available.empty()) error += "\nNo ROMs are installed. Put the \"roms\" folder from a CraftOS-Tweaked release next to the executable.";
+    else {
+        error += "\nInstalled versions:";
+        for (const ROMVersion& v : available) error += " " + v.id;
+    }
+    return false;
+}
+
+void useROMFolder(const path_t& dir) {
+    currentROMVersion = readROMVersion(dir);
+    setROMPath(dir);
+}
+
+const ROMVersion& activeROMVersion() {
+    return currentROMVersion;
+}
+
+const std::string& ccVersionString() {
+    static const std::string fallback = CRAFTOSPC_CC_VERSION;
+    return currentROMVersion.ccVersion.empty() ? fallback : currentROMVersion.ccVersion;
+}
+
+
+/* ---- Passing values between computers' Lua states, like CC: Tweaked does ---- */
+
+static void ccCloneValue(lua_State *from, int idx, lua_State *to, int seen, int depth) {
+    idx = lua_absindex(from, idx);
+    if (depth > 200 || !lua_checkstack(to, 6) || !lua_checkstack(from, 6)) {lua_pushnil(to); return;}
+    switch (lua_type(from, idx)) {
+        case LUA_TBOOLEAN: lua_pushboolean(to, lua_toboolean(from, idx)); break;
+        case LUA_TNUMBER: lua_pushnumber(to, lua_tonumber(from, idx)); break;
+        case LUA_TSTRING: {
+            size_t len = 0;
+            const char * str = lua_tolstring(from, idx, &len);
+            lua_pushlstring(to, str, len);
+            break;
+        } case LUA_TTABLE: {
+            const void * ptr = lua_topointer(from, idx);
+            lua_rawgetp(to, seen, ptr);
+            if (!lua_isnil(to, -1)) break; // already copied: keep the reference
+            lua_pop(to, 1);
+            lua_newtable(to);
+            lua_pushvalue(to, -1);
+            lua_rawsetp(to, seen, ptr);
+            lua_pushnil(from);
+            while (lua_next(from, idx) != 0) {
+                ccCloneValue(from, -2, to, seen, depth + 1);
+                ccCloneValue(from, -1, to, seen, depth + 1);
+                if (lua_isnil(to, -2) || lua_isnil(to, -1)) lua_pop(to, 2); // entries that are not representable are dropped
+                else lua_rawset(to, -3);
+                lua_pop(from, 1);
+            }
+            break;
+        } default: lua_pushnil(to);
+    }
+}
+
+void ccCloneValues(lua_State *from, lua_State *to, int n) {
+    const int base = lua_gettop(from) - n + 1;
+    for (int i = 0; i < n; i++) {
+        lua_newtable(to); // identity map: each argument gets its own
+        const int seen = lua_gettop(to);
+        ccCloneValue(from, base + i, to, seen, 0);
+        lua_remove(to, seen);
+    }
 }

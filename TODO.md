@@ -38,12 +38,18 @@ Secrets and variables → Actions → New secret, e.g. `RELEASE_TOKEN`), and use
 
 ## 2. GitHub settings to check (you)
 
+* **Contact**: the SimpleX address in `README.md`, `SECURITY.md` and `.github/ISSUE_TEMPLATE/config.yml` is yours; change
+  it in those three places if it ever changes.
 * **Labels used by the issue forms**: create `crash` and `compatibility` (and make sure
   `bug` and `enhancement` exist) under Issues → Labels. Labels that do not exist are
   silently not applied.
-* **"Automatic Dependency Submission (NuGet)"** is a GitHub-generated workflow that fails
-  on this repository (it fails on the upstream code too). Turn it off under Settings →
-  Advanced Security → Dependency graph → Automatic dependency submission.
+* **"Automatic Dependency Submission (NuGet)"**: GitHub generates this workflow itself (it is not a file in the
+  repository) because the Visual Studio project looks like a .NET project. It fails because there is no NuGet
+  dependency to submit; the project uses vcpkg. Nothing depends on it, so turn it off: Settings → Advanced Security
+  (or Code security) → Dependency graph → Automatic dependency submission → Disabled. It can be left alone too; it only
+  adds a red mark.
+* **Workflow permissions**: Settings → Actions → General → Workflow permissions → *Read and write* (needed by Sync ROMs
+  to push the `rom-sync` branch). The release workflow asks for its own `contents: write`.
 * Repository **Sponsor** button: `.github/FUNDING.yml` is empty on purpose (it used to
   point at the upstream author). Add your own, or leave it empty.
 
@@ -117,27 +123,45 @@ an unsigned `.ipa` for AltStore/SideStore in CI (macOS runner):
 
 Neither of these can be tested in CI beyond "it builds"; they need a real device to check.
 
-## 6. Compatibility items to change later (waiting for the CC: Tweaked repository)
+## 6. Compatibility items to change later
 
-These were left alone on purpose so existing programs, saves and plugins keep working.
-Do them once the CC: Tweaked repository is provided for the adaptation.
+The CC: Tweaked repository has been provided and the emulator now runs its ROM unmodified (see
+`docs/cc-tweaked-compatibility.md`). What is done and what is left:
 
-* **`_HOST`** (`src/Computer.cpp`) still reports `ComputerCraft x.y (CraftOS-PC ...)`
-  because Lua programs detect the emulator by it. Change it to match what the latest
-  CC: Tweaked reports.
-* **`os.version()`** comes from the ROM's `bios.lua` (the `craftos2-rom` repository), not
-  from this code (`resources/CraftOSTest.lua` also checks for `"CraftOS 1.9"`). Update both
-  to whatever the latest CC: Tweaked uses.
-* **Data and ROM locations**: the data directories (`%appdata%\CraftOS-PC`,
-  `~/Library/Application Support/CraftOS-PC`, `$XDG_DATA_HOME/craftos-pc`, `~/.craftos`)
-  and the ROM path (`/usr/share/craftos`, `/usr/local/share/craftos`, `/craftos` in the
-  WebAssembly build) are unchanged. Change them to match CC: Tweaked **with a migration**
-  that moves existing saves, or users lose their computers. CI log paths and `README.md`
-  mention them too.
-* **Plugin API**: `api/CraftOS-PC.hpp`, the `CRAFTOSPC_*` macros and the
-  `craftos_pc_version` field keep their names for plugin compatibility. When renaming, add
-  a `CraftOS-Tweaked.hpp` that includes the old header so existing plugins still build.
+* **`_HOST`**: done. It comes from the active ROM's `rom-info.json` and reads like CC: Tweaked's
+  (`ComputerCraft 1.120.2 (Minecraft 1.20.1)`). Programs that used to detect the emulator by
+  `_HOST:find("CraftOS-PC")` must use another check (`periphemu`/`config` exist only in the emulator).
+* **`os.version()`**: done by the ROM (`CraftOS 1.9`, as CC: Tweaked). `resources/CraftOSTest.lua` still checks the old
+  text; adjust it if it fails.
+* **Data and ROM locations** (still to do, needs a decision): the data directories (`%appdata%\CraftOS-PC`,
+  `~/Library/Application Support/CraftOS-PC`, `$XDG_DATA_HOME/craftos-pc`, `~/.craftos`) and the system ROM path
+  (`/usr/share/craftos`, `/usr/local/share/craftos`, `/craftos` in the WebAssembly build) are unchanged. CC: Tweaked
+  itself keeps computers under `<world>/computercraft/computer/<id>`, so there is no single path to "match"; pick
+  names (e.g. `CraftOS-Tweaked`) and add a migration that moves existing saves, or users lose their computers.
+  CI log paths and `README.md` mention them too. New ROM search paths already use `.../craftos-tweaked/roms`.
+* **Plugin API**: `api/CraftOS-PC.hpp`, the `CRAFTOSPC_*` macros and the `craftos_pc_version` field keep their names for
+  plugin compatibility. When renaming, add a `CraftOS-Tweaked.hpp` that includes the old header so existing plugins
+  still build.
 * The `ccpcTerm` protocol extension name is unchanged.
+* Open behavior gaps (pattern-matching time-outs, `pairs` order, DNS-resolved HTTP checks, ordered `http.rules`) are
+  listed in `docs/cc-tweaked-compatibility.md`.
+
+## 6b. ROMs and CC: Tweaked versions (you)
+
+* **Where they are**: `roms/<id>/` (see `roms/README.md`); the emulator's additions are in `roms-overlay/`. Releases ship
+  the `roms` folder next to the executable, plus `CraftOS-Tweaked-ROMs.zip` on its own.
+* **Auto-update**: `.github/workflows/sync-roms.yml` runs daily (and by hand from the Actions tab) and pushes new CC:
+  Tweaked ROM changes to the **`rom-sync`** branch. Pushes there do not start CI (the CI workflow only listens to other
+  branches), so nothing is built or published. To bring a change over: open a pull request `rom-sync` -> main (that
+  starts CI, including the CC: Tweaked tests), read the diff, fix the emulator if the tests show a difference, update
+  `tools/cct/baseline/<id>.txt` if results changed, and merge. GitHub only runs scheduled workflows from the default
+  branch, so the workflow file must be on main (it is).
+* **Settings needed**: Settings -> Actions -> General -> Workflow permissions: "Read and write permissions" (the sync
+  pushes with `GITHUB_TOKEN`), and allow Actions to create pull requests only if you later want automatic PRs.
+* **Adding a version**: see `docs/cc-tweaked-compatibility.md`.
+* **License check before you publish ROMs (your decision)**: the ROMs are CC: Tweaked's files under CC: Tweaked's
+  licenses, mostly the ComputerCraft Public License. Read the conditions in `roms/README.md` and, if unsure, ask the CC:
+  Tweaked maintainers. I am not a lawyer and this is not legal advice.
 
 ## 7. Updater
 

@@ -96,6 +96,10 @@ struct configuration {
 
     // The following fields are available in API version 10.8 and later.
     bool useDFPWM;
+
+    // CraftOS-Tweaked: the CC: Tweaked version to emulate, i.e. the name of a folder inside "roms" (for example
+    // "mc-1.20.x"). New fields are only ever added at the end, so plugins built earlier keep working.
+    std::string ccVersion;
 };
 
 // A smaller structure that holds the configuration for a single computer.

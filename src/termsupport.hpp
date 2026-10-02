@@ -31,6 +31,7 @@ extern std::unordered_set<Terminal*> orphanedTerminals;
 extern std::atomic_bool taskQueueReady;
 extern std::condition_variable taskQueueNotify;
 extern std::unordered_map<int, unsigned char> keymap;
+extern int convertKeyCode(int lwjglCode); // the code for the "key" event as the active ROM's keys API expects it; 0 if it has none
 extern std::unordered_map<int, unsigned char> keymap_cli;
 extern Uint32 task_event_type;
 extern Uint32 render_event_type;

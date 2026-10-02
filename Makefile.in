@@ -148,10 +148,15 @@ rebuild: clean craftos-tweaked
 install: craftos-tweaked
 	echo " [CP]    $(DESTDIR)/craftos-tweaked"
 	cp craftos-tweaked $(DESTDIR)/craftos-tweaked
+	echo " [CP]    $(PREFIX)/share/craftos/roms"
+	mkdir -p $(PREFIX)/share/craftos
+	cp -R @srcdir@/roms $(PREFIX)/share/craftos/
 
 uninstall:
 	echo " [RM]    $(DESTDIR)/craftos-tweaked"
 	rm $(DESTDIR)/craftos-tweaked
+	echo " [RM]    $(PREFIX)/share/craftos/roms"
+	rm -rf $(PREFIX)/share/craftos/roms
 
 test: craftos-tweaked
 	./craftos-tweaked --headless --script $(shell pwd)/resources/CraftOSTest.lua -d "$(shell mktemp -d)"

@@ -36,6 +36,7 @@ extern "C" {extern int Android_JNI_SetupThread(void);}
 extern FileEntry standaloneROM;
 extern FileEntry standaloneDebug;
 extern std::string standaloneBIOS;
+extern std::string standalonePrelude;
 #endif
 
 extern Uint32 eventTimeoutEvent(Uint32 interval, void* param);
@@ -623,14 +624,20 @@ void runComputer(Computer * self, const path_t& bios_name, const std::string& bi
         lua_setglobal(L, "_CC_DEFAULT_SETTINGS");
         lua_pushboolean(L, ::config.disable_lua51_features);
         lua_setglobal(L, "_CC_DISABLE_LUA51_FEATURES");
-        // TODO(slammingprogramming): _HOST still has the upstream "ComputerCraft x.y (CraftOS-PC ...)" shape because
-        // Lua programs detect the emulator by it. Change it to match what the latest CC: Tweaked reports (see TODO.md),
-        // and keep the "CraftOS-PC" marker only if we decide to stay detectable as a CraftOS-PC fork.
+        // _HOST is "ComputerCraft <version> (Minecraft <version>)" exactly like CC: Tweaked, taken from the selected ROM.
+        // A custom ROM folder without a rom-info.json falls back to the old CraftOS-PC style string.
+        {
+            const ROMVersion& rv = activeROMVersion();
+            if (!rv.minecraftVersion.empty()) {
+                pushstring(L, "ComputerCraft " + ccVersionString() + " (Minecraft " + rv.minecraftVersion + ")");
+            } else {
 #if CRAFTOSPC_INDEV == true && defined(CRAFTOSPC_COMMIT)
-        lua_pushstring(L, "ComputerCraft " CRAFTOSPC_CC_VERSION " (CraftOS-PC " CRAFTOSPC_VERSION "@" CRAFTOSPC_COMMIT ")");
+                lua_pushstring(L, ("ComputerCraft " + ccVersionString() + " (CraftOS-PC " CRAFTOSPC_VERSION "@" CRAFTOSPC_COMMIT ")").c_str());
 #else
-        lua_pushstring(L, "ComputerCraft " CRAFTOSPC_CC_VERSION " (CraftOS-PC " CRAFTOSPC_VERSION ")");
+                lua_pushstring(L, ("ComputerCraft " + ccVersionString() + " (CraftOS-PC " CRAFTOSPC_VERSION ")").c_str());
 #endif
+            }
+        }
         lua_setglobal(L, "_HOST");
         if (selectedRenderer == 1) {
             lua_pushboolean(L, true);
@@ -683,6 +690,24 @@ void runComputer(Computer * self, const path_t& bios_name, const std::string& bi
             lua_pop(L, 1);
         }
 
+        /* Run the ROM's prelude, if it has one. It holds the emulator-side compatibility code (Lua 5.1/5.2 shims and the
+           like) that lets CC: Tweaked's own bios.lua run unmodified. The debugger's BIOS has no prelude. */
+        {
+            std::string prelude;
+#ifdef STANDALONE_ROM
+            if (bios_name == "standalone BIOS") prelude = standalonePrelude;
+#else
+            if (bios_name == "bios.lua") {
+                std::ifstream preludeFile(getROMPath() / "prelude.lua", std::ios::binary);
+                if (preludeFile.is_open()) prelude.assign(std::istreambuf_iterator<char>(preludeFile), std::istreambuf_iterator<char>());
+            }
+#endif
+            if (!prelude.empty() && (luaL_loadbuffer(L, prelude.c_str(), prelude.size(), "@prelude.lua") || lua_pcall(L, 0, 0, 0))) {
+                fprintf(stderr, "Error in the ROM's prelude.lua: %s\n", lua_tostring(L, -1));
+                lua_pop(L, 1);
+            }
+        }
+
         /* Load the file containing the script we are going to run */
 #ifdef STANDALONE_ROM
         status = luaL_loadbuffer(self->coro, bios_data.c_str(), bios_data.size(), "@bios.lua");
@@ -729,6 +754,9 @@ void runComputer(Computer * self, const path_t& bios_name, const std::string& bi
         if (self->eventTimeout != 0) SDL_RemoveTimer(self->eventTimeout);
         if (config.abortTimeout > 0 || config.standardsMode) self->eventTimeout = SDL_AddTimer(::config.standardsMode ? 7000 : ::config.abortTimeout, eventTimeoutEvent, self);
 #endif
+        // eventTimeoutEvent ignores computers whose last event is too old; without this, code that never yields before
+        // its first event (e.g. an infinite loop in startup.lua) could never be stopped
+        self->last_event = std::chrono::high_resolution_clock::now();
         while (status == LUA_YIELD && self->running == 1) {
             status = lua_resume(self->coro, NULL, narg);
             if (status == LUA_YIELD) {

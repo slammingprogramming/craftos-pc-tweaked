@@ -75,6 +75,7 @@ extern std::function<void(const std::string&)> rawWriter;
 extern FileEntry standaloneROM;
 extern FileEntry standaloneDebug;
 extern std::string standaloneBIOS;
+extern std::string standaloneROMInfo;
 #endif
 
 int selectedRenderer = -1; // 0 = SDL, 1 = headless, 2 = CLI, 3 = Raw
@@ -174,7 +175,7 @@ static void update_thread() {
         HTTPRequest request(HTTPRequest::HTTP_GET, "/repos/" CRAFTOSTWEAKED_REPO "/releases/latest", HTTPMessage::HTTP_1_1);
         HTTPResponse response;
         session.setTimeout(Poco::Timespan(5000000));
-        request.add("User-Agent", "CraftOS-Tweaked/" CRAFTOSPC_VERSION " ComputerCraft/" CRAFTOSPC_CC_VERSION);
+        request.add("User-Agent", std::string("CraftOS-Tweaked/" CRAFTOSPC_VERSION " ComputerCraft/") + ccVersionString());
         session.sendRequest(request);
         Poco::JSON::Parser parser;
         parser.parse(session.receiveResponse(response));
@@ -566,8 +567,34 @@ static void migrateData(bool forced) {
 
 static int id = 0;
 static bool manualID = false;
+static bool romPathExplicit = false;   // --rom/--assets-dir was given
+static std::string cliCCVersion;       // --cc-version was given
 static bool forceMigrate = false;
 static path_t customDataDir;
+
+// Chooses which CC: Tweaked ROM this session uses: an explicit --rom folder, else roms/<ccVersion> from the usual
+// places (next to the executable first), else the old single-ROM location so existing installs keep working.
+static void selectROMForSession() {
+#ifdef STANDALONE_ROM
+    useEmbeddedROMInfo(standaloneROMInfo);
+#else
+    std::error_code ec;
+    if (romPathExplicit) {
+        path_t dir = getROMPath();
+        if (!fs::exists(dir / "bios.lua", ec) && fs::exists(dir / config.ccVersion / "bios.lua", ec)) dir = dir / config.ccVersion; // a folder of ROMs
+        useROMFolder(dir);
+        return;
+    }
+    std::string error;
+    if (selectROMVersion(config.ccVersion, error)) return;
+    if (fs::exists(getROMPath() / "bios.lua", ec)) { // an old-style install with a single ROM
+        useROMFolder(getROMPath());
+        return;
+    }
+    if (selectedRenderer == 0 || selectedRenderer == 5) SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "CC: Tweaked ROM not found", error.c_str(), NULL);
+    else fprintf(stderr, "%s\n", error.c_str());
+#endif
+}
 static std::vector<std::pair<std::string, std::string>> configOptions;
 
 #define setConfigSettingB(n) else if (strcmp(name, #n) == 0) config.n = strcasecmp(value, "true") == 0
@@ -623,6 +650,8 @@ static void setConfigOption(const char * name, const char * value) {
     setConfigSettingB(useWebP);
     setConfigSettingB(dropFilePath);
     setConfigSettingB(useDFPWM);
+    else if (strcmp(name, "ccVersion") == 0)
+        config.ccVersion = value;
     else if (strcmp(name, "useHDFont") == 0)
         config.customFontPath = strcasecmp(value, "true") == 0 ? "hdfont" : "";
     else if (strcmp(name, "http_whitelist") == 0) {
@@ -664,9 +693,20 @@ int parseArguments(const std::vector<std::string>& argv) {
         else if (arg.substr(0, 3) == "-C=") computerDir = arg.substr(3);
         else if (arg == "--start-dir") customDataDir = argv[++i];
         else if (arg.substr(0, 3) == "-c=") customDataDir = arg.substr(3);
-        else if (arg == "--rom") setROMPath(argv[++i].c_str());
-        else if (arg == "--assets-dir" || arg == "-a") setROMPath(path_t(argv[++i])/"assets"/"computercraft"/"lua");
-        else if (arg.substr(0, 3) == "-a=") setROMPath(path_t(arg.substr(3))/"assets"/"computercraft"/"lua");
+        else if (arg == "--rom") {setROMPath(argv[++i].c_str()); romPathExplicit = true;}
+        else if (arg == "--assets-dir" || arg == "-a") {setROMPath(path_t(argv[++i])/"assets"/"computercraft"/"lua"); romPathExplicit = true;}
+        else if (arg.substr(0, 3) == "-a=") {setROMPath(path_t(arg.substr(3))/"assets"/"computercraft"/"lua"); romPathExplicit = true;}
+        else if (arg == "--cc-version") cliCCVersion = argv[++i];
+        else if (arg == "--list-cc-versions") {
+            const std::vector<ROMVersion> versions = findROMVersions();
+            std::cout << "Default: " CRAFTOSTWEAKED_DEFAULT_CC_VERSION "\nSearched:\n";
+            for (const path_t& d : romSearchDirectories()) std::cout << "  " << d.string() << "\n";
+            std::cout << "Installed CC: Tweaked versions:\n";
+            if (versions.empty()) std::cout << "  (none)\n";
+            for (const ROMVersion& v : versions)
+                std::cout << "  " << v.id << (v.ccVersion.empty() ? "" : "  (CC: Tweaked " + v.ccVersion + (v.minecraftVersion.empty() ? "" : ", Minecraft " + v.minecraftVersion) + ")") << "  " << v.path.string() << "\n";
+            return 0;
+        }
         else if (arg == "--mc-save") computerDir = getMCSavePath() / argv[++i] / "computer";
         else if (arg == "-i" || arg == "--id") {
             manualID = true;
@@ -755,7 +795,7 @@ int parseArguments(const std::vector<std::string>& argv) {
 #else
             std::cout << " print_txt";
 #endif
-            std::cout << "\nCopyright (c) 2019-2024 JackMacWindows. Licensed under the MIT License.\n";
+            std::cout << "\nCopyright (c) 2026 slammingprogramming\nCopyright (c) 2019-2024 JackMacWindows\nLicensed under the GNU AGPL v3.0 or later. Source: " CRAFTOSTWEAKED_HOMEPAGE_URL "\n";
             return 0;
         } else if (arg == "--help" || arg == "-h" || arg == "-?") {
             checkTTY();
@@ -763,7 +803,9 @@ int parseArguments(const std::vector<std::string>& argv) {
                       << "General options:\n"
                       << "  -d|--directory <dir>             Sets the directory that stores user data\n"
                       << "  --mc-save <name>                 Uses the selected Minecraft save name for computer data\n"
-                      << "  --rom <dir>                      Sets the directory that holds the ROM & BIOS\n"
+                      << "  --rom <dir>                      Sets the directory that holds the ROM & BIOS (or a folder of ROMs)\n"
+                      << "  --cc-version <id>                Selects the CC: Tweaked version to emulate (a folder in \"roms\")\n"
+                      << "  --list-cc-versions               Lists the installed CC: Tweaked versions\n"
                       << "  -i|--id <id>                     Sets the ID of the computer that will launch\n"
                       << "  --script <file>                  Sets a script to be run before starting the shell\n"
                       << "  --exec <code>                    Sets Lua code to be run before starting the shell\n"
@@ -827,6 +869,8 @@ int main(int argc, char*argv[]) {
         config_save();
     }
     if (selectedRenderer == -1) selectedRenderer = config.useHardwareRenderer ? 5 : 0;
+    if (!cliCCVersion.empty()) config.ccVersion = cliCCVersion; // for this session only; not saved
+    selectROMForSession();
     if (rawClient) {
         if (!rawWebSocketURL.empty()) {
             Poco::URI uri;
@@ -850,7 +894,7 @@ int main(int argc, char*argv[]) {
             if (uri.getPathAndQuery().empty()) uri.setPath("/");
             if (!config.http_proxy_server.empty()) cs->setProxy(config.http_proxy_server, config.http_proxy_port);
             HTTPRequest request(HTTPRequest::HTTP_GET, uri.getPathAndQuery(), HTTPMessage::HTTP_1_1);
-            request.add("User-Agent", "computercraft/" CRAFTOSPC_CC_VERSION " CraftOS-Tweaked/" CRAFTOSPC_VERSION);
+            request.add("User-Agent", std::string("computercraft/") + ccVersionString() + " CraftOS-Tweaked/" CRAFTOSPC_VERSION);
             request.add("Accept-Charset", "UTF-8");
             HTTPResponse response;
             WebSocket* ws;

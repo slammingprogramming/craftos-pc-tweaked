@@ -1,0 +1,8 @@
+{
+  "computercraft_version": "1.120.3",
+  "id": "mc-26.3",
+  "minecraft_version": "26.3",
+  "upstream_branch": "mc-26.3",
+  "upstream_commit": "9d66edee5992c7677de45406fe8035c597dca051",
+  "upstream_repository": "https://github.com/cc-tweaked/CC-Tweaked"
+}

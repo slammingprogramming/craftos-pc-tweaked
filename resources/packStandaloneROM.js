@@ -24,4 +24,14 @@ writeDir("debug", 1)
 fs.writeSync(out, ");\n\nstd::string standaloneBIOS = ")
 console.log("Reading BIOS")
 fs.writeSync(out, JSON.stringify(fs.readFileSync("bios.lua", "utf8")).replace(/\\r\\n/g, "\\n").replace(/\\n/g, "\\n\"\n\"") + ";")
+// Optional extras of a CraftOS-Tweaked ROM folder: the prelude that runs before the BIOS, and rom-info.json
+function writeOptionalString(name, file) {
+    fs.writeSync(out, "\n\nstd::string " + name + " = ")
+    if (fs.existsSync(file)) {
+        console.log("Reading " + file)
+        fs.writeSync(out, JSON.stringify(fs.readFileSync(file, "utf8")).replace(/\\r\\n/g, "\\n").replace(/\\n/g, "\\n\"\n\"") + ";")
+    } else fs.writeSync(out, '"";')
+}
+writeOptionalString("standalonePrelude", "prelude.lua")
+writeOptionalString("standaloneROMInfo", "rom-info.json")
 fs.closeSync(out);

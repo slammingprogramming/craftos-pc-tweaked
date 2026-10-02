@@ -168,6 +168,33 @@ std::thread * renderThread;
     {SDLK_INSERT, 210},
     {SDLK_DELETE, 211}
 };
+
+// The terminals produce LWJGL 2 key codes (the numbers above, which CC: Tweaked used before 1.109). CC: Tweaked's
+// keys API has used GLFW codes ever since, so events are converted on their way into Lua.
+static const std::unordered_map<int, int> lwjglToGLFW = {
+    {1, 256}, {2, '1'}, {3, '2'}, {4, '3'}, {5, '4'}, {6, '5'}, {7, '6'}, {8, '7'}, {9, '8'}, {10, '9'}, {11, '0'},
+    {12, 45}, {13, 61}, {14, 259}, {15, 258},
+    {16, 'Q'}, {17, 'W'}, {18, 'E'}, {19, 'R'}, {20, 'T'}, {21, 'Y'}, {22, 'U'}, {23, 'I'}, {24, 'O'}, {25, 'P'},
+    {26, 91}, {27, 93}, {28, 257}, {29, 341},
+    {30, 'A'}, {31, 'S'}, {32, 'D'}, {33, 'F'}, {34, 'G'}, {35, 'H'}, {36, 'J'}, {37, 'K'}, {38, 'L'},
+    {39, 59}, {40, 39}, {41, 96}, {42, 340}, {43, 92},
+    {44, 'Z'}, {45, 'X'}, {46, 'C'}, {47, 'V'}, {48, 'B'}, {49, 'N'}, {50, 'M'},
+    {51, 44}, {52, 46}, {53, 47}, {54, 344}, {55, 332}, {56, 342}, {57, 32}, {58, 280},
+    {59, 290}, {60, 291}, {61, 292}, {62, 293}, {63, 294}, {64, 295}, {65, 296}, {66, 297}, {67, 298}, {68, 299},
+    {69, 282}, {70, 281},
+    {71, 327}, {72, 328}, {73, 329}, {74, 333}, {75, 324}, {76, 325}, {77, 326}, {78, 334},
+    {79, 321}, {80, 322}, {81, 323}, {82, 320}, {83, 330},
+    {87, 300}, {88, 301}, {100, 302}, {101, 303}, {102, 304},
+    {141, 336}, {156, 335}, {157, 345}, {181, 331}, {184, 346}, {197, 284},
+    {199, 268}, {200, 265}, {201, 266}, {203, 263}, {205, 262}, {207, 269}, {208, 264}, {209, 267}, {210, 260}, {211, 261}
+};
+
+/* export */ int convertKeyCode(int code) {
+    if (!activeROMVersion().glfwKeys) return code;
+    const auto it = lwjglToGLFW.find(code);
+    return it == lwjglToGLFW.end() ? 0 : it->second; // keys that GLFW does not have (numpad @, :, stop, ...) are dropped
+}
+
 #ifndef NO_CLI
 /* export */ std::unordered_map<int, unsigned char> keymap_cli = {
     {'1', 2},
@@ -178,7 +205,7 @@ std::thread * renderThread;
     {'6', 7},
     {'7', 8},
     {'8', 9},
-    {'9', 1},
+    {'9', 10},
     {'0', 11},
     {'-', 12},
     {'=', 13},
@@ -754,15 +781,17 @@ std::string termGetEvent(lua_State *L) {
                 SDL_free(text);
                 return "paste";
             } else computer->waitingForTerminate = 0;
-            if (selectedRenderer != 0 && selectedRenderer != 5) lua_pushinteger(L, e.key.keysym.sym); 
-            else lua_pushinteger(L, keymap.at(e.key.keysym.sym));
+            const int keyCode = convertKeyCode((selectedRenderer != 0 && selectedRenderer != 5) ? e.key.keysym.sym : keymap.at(e.key.keysym.sym));
+            if (keyCode == 0) return "";
+            lua_pushinteger(L, keyCode);
             lua_pushboolean(L, e.key.repeat);
             return "key";
         } else if (e.type == SDL_KEYUP && (selectedRenderer == 2 || selectedRenderer == 3 || keymap.find(e.key.keysym.sym) != keymap.end())) {
             if ((e.key.keysym.sym != SDLK_F2 && e.key.keysym.sym != SDLK_F3 && e.key.keysym.sym != SDLK_F11 && e.key.keysym.sym != SDLK_F12) || config.ignoreHotkeys) {
                 computer->waitingForTerminate = 0;
-                if (selectedRenderer != 0 && selectedRenderer != 5) lua_pushinteger(L, e.key.keysym.sym); 
-                else lua_pushinteger(L, keymap.at(e.key.keysym.sym));
+                const int keyCode = convertKeyCode((selectedRenderer != 0 && selectedRenderer != 5) ? e.key.keysym.sym : keymap.at(e.key.keysym.sym));
+                if (keyCode == 0) return "";
+                lua_pushinteger(L, keyCode);
                 return "key_up";
             }
         } else if (e.type == SDL_TEXTINPUT) {

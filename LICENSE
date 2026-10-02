@@ -22,6 +22,13 @@ Licensing summary
     International license.
     SPDX-License-Identifier: CC-BY-SA-4.0
 
+  * ROMs: the files in roms/ and roms-overlay/ are mostly NOT covered by the
+    licenses above. They come from CC: Tweaked and CraftOS-PC 2 and keep the
+    licenses they have there, which differ per file (LicenseRef-CCPL, MPL-2.0,
+    MIT, CC0-1.0, ...); only the few files that say AGPL-3.0-or-later are new in
+    CraftOS-Tweaked. Each file says which license applies, the texts are in
+    roms/<version>/LICENSES/, and roms/README.md explains how to read them.
+
   * Code and content that came from CraftOS-PC 2 is included under the terms of
     its original MIT License (section 3), and is distributed here as part of
     this project under the licenses above. Third-party material that carries

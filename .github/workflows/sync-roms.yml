@@ -1,0 +1,82 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (c) 2026 slammingprogramming
+#
+# Keeps the CC: Tweaked ROMs in roms/ up to date WITHOUT touching the main branch.
+#
+# Every day (and on demand from the Actions tab) this imports the current ROM of each CC: Tweaked
+# branch listed in roms-overlay/versions.json and, if anything changed, force-pushes the result to
+# the "rom-sync" branch, which is "the default branch plus the newest upstream ROMs". CI does not
+# run on pushes to that branch (see main.yml), so nothing is built or published from it.
+#
+# To adopt an update: look at the upstream changes (the job summary links them), try the emulator
+# against the new ROM, adapt the emulator if CC: Tweaked changed behaviour, then merge rom-sync
+# (or open a pull request from it, which does run CI).
+
+name: Sync ROMs
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  SYNC_BRANCH: rom-sync
+
+jobs:
+  sync:
+    name: Import the latest CC Tweaked ROMs
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.repository.default_branch }}
+    - name: Fetch the CC Tweaked branches and compose the ROMs
+      run: |
+        python3 - <<'PY'
+        import json, subprocess
+        cfg = json.load(open("roms-overlay/versions.json"))
+        for v in cfg["versions"]:
+            dest = f"{__import__('os').environ['RUNNER_TEMP']}/cct-{v['id']}"
+            subprocess.check_call(["git", "clone", "--quiet", "--depth", "1", "--branch", v["branch"], cfg["upstream"] + ".git", dest])
+            subprocess.check_call(["python3", "tools/rom/compose.py", "--upstream", dest, "--id", v["id"], "--branch", v["branch"]])
+        PY
+    - name: Commit to the ${{ env.SYNC_BRANCH }} branch
+      run: |
+        {
+          echo "## ROM sync"
+          echo
+        } >> "$GITHUB_STEP_SUMMARY"
+        if git diff --quiet HEAD -- roms && [ -z "$(git ls-files --others --exclude-standard roms)" ]; then
+          echo "The ROMs in roms/ already match CC: Tweaked. Nothing to do." | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+        # Describe what changed upstream, per version
+        MESSAGE="Update the CC: Tweaked ROMs"$'\n'
+        for dir in roms/*/; do
+          id="$(basename "$dir")"
+          new="$(python3 -c "import json;print(json.load(open('roms/$id/rom-info.json'))['upstream_commit'])")"
+          old="$(git show "HEAD:roms/$id/rom-info.json" 2>/dev/null | python3 -c "import json,sys;print(json.load(sys.stdin).get('upstream_commit',''))" 2>/dev/null || true)"
+          if [ "$old" = "$new" ]; then continue; fi
+          line="$id: ${old:0:10} -> ${new:0:10}"
+          MESSAGE="$MESSAGE"$'\n'"$line"
+          if [ -n "$old" ]; then
+            echo "* **$id**: [\`${old:0:10}...${new:0:10}\`](https://github.com/cc-tweaked/CC-Tweaked/compare/$old...$new)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "* **$id**: new, at \`${new:0:10}\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
+        done
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git checkout -B "$SYNC_BRANCH"
+        git add roms
+        git commit -q -m "$MESSAGE"
+        git push --force origin "$SYNC_BRANCH"
+        {
+          echo
+          echo "Pushed to the \`$SYNC_BRANCH\` branch. Compare it with the default branch to review the changes:"
+          echo
+          echo "${{ github.server_url }}/${{ github.repository }}/compare/${{ github.event.repository.default_branch }}...$SYNC_BRANCH"
+        } >> "$GITHUB_STEP_SUMMARY"

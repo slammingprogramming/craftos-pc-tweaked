@@ -27,10 +27,6 @@ on:
 permissions:
   contents: read
 
-env:
-  ROM_REPO: https://github.com/MCJack123/craftos2-rom
-  ROM_REF: master
-
 jobs:
   check:
     name: Check version
@@ -79,8 +75,6 @@ jobs:
       with:
         pattern: CraftOS-Tweaked-*
         path: artifacts
-    - name: Download ROM
-      run: git clone --depth 1 --branch "$ROM_REF" "$ROM_REPO" rom
     - name: Write source notice
       run: |
         mkdir -p stage-common
@@ -99,8 +93,9 @@ jobs:
 
           https://github.com/MCJack123/craftos2-lua
 
-        Run "git clone --recursive" to fetch both. The CraftOS ROM files in this
-        package come from ${ROM_REPO} and have their own license.
+        Run "git clone --recursive" to fetch both. The ROMs in the "roms" folder come from
+        CC: Tweaked (https://github.com/cc-tweaked/CC-Tweaked) and have their own licenses;
+        see roms/README.md and each ROM's LICENSES folder.
         EOF
         cp LICENSE AUTHORS.md stage-common/
     - name: Package Windows builds
@@ -110,36 +105,30 @@ jobs:
           stage="stage-windows-$arch"
           mkdir "$stage"
           cp -R artifacts/CraftOS-Tweaked-windows-$arch/. "$stage/"
-          cp rom/bios.lua rom/hdfont.bmp "$stage/"
-          cp -R rom/rom rom/debug "$stage/"
+          cp -R roms "$stage/roms"
           cp stage-common/* "$stage/"
           (cd "$stage" && zip -qr "../CraftOS-Tweaked-Portable-$name.zip" .)
         done
     - name: Package Linux build
       run: |
         stage=CraftOS-Tweaked-linux-x86_64
-        mkdir -p "$stage/bin" "$stage/lib" "$stage/share/craftos"
-        cp artifacts/CraftOS-Tweaked-linux-x64/craftos-tweaked "$stage/bin/craftos-tweaked"
+        mkdir -p "$stage/lib"
+        cp artifacts/CraftOS-Tweaked-linux-x64/craftos-tweaked "$stage/craftos-tweaked"
         cp artifacts/CraftOS-Tweaked-linux-x64/craftos2-lua/src/liblua.so "$stage/lib/libcraftos2-lua.so"
-        chmod +x "$stage/bin/craftos-tweaked"
+        chmod +x "$stage/craftos-tweaked"
         # The build links the Lua library by relative path; make it relocatable
-        patchelf --replace-needed craftos2-lua/src/liblua.so libcraftos2-lua.so "$stage/bin/craftos-tweaked"
-        patchelf --set-rpath '$ORIGIN/../lib' "$stage/bin/craftos-tweaked"
-        readelf -d "$stage/bin/craftos-tweaked" | grep -E 'NEEDED|RPATH|RUNPATH'
-        if readelf -d "$stage/bin/craftos-tweaked" | grep -q 'craftos2-lua/src'; then
+        patchelf --replace-needed craftos2-lua/src/liblua.so libcraftos2-lua.so "$stage/craftos-tweaked"
+        patchelf --set-rpath '$ORIGIN/lib' "$stage/craftos-tweaked"
+        readelf -d "$stage/craftos-tweaked" | grep -E 'NEEDED|RPATH|RUNPATH'
+        if readelf -d "$stage/craftos-tweaked" | grep -q 'craftos2-lua/src'; then
           echo "::error::Lua library path was not rewritten"; exit 1
         fi
-        cp rom/bios.lua rom/hdfont.bmp "$stage/share/craftos/"
-        cp -R rom/rom rom/debug "$stage/share/craftos/"
+        # The emulator finds the "roms" folder next to the executable
+        cp -R roms "$stage/roms"
         cp stage-common/* "$stage/"
-        cat > "$stage/craftos-tweaked" <<'EOF'
-        #!/bin/sh
-        DIR="$(dirname "$(readlink -f "$0")")"
-        exec "$DIR/bin/craftos-tweaked" --rom "$DIR/share/craftos" "$@"
-        EOF
-        chmod +x "$stage/craftos-tweaked"
         cat > "$stage/README-linux.txt" <<'EOF'
-        Run ./craftos-tweaked to start CraftOS-Tweaked.
+        Run ./craftos-tweaked to start CraftOS-Tweaked. The "roms" folder next to it holds the CC: Tweaked
+        versions you can pick from (./craftos-tweaked --list-cc-versions, then --cc-version <name>).
 
         This build was made on Ubuntu (ubuntu-latest) and uses system libraries.
         On Debian/Ubuntu you can install everything it needs with:
@@ -150,6 +139,10 @@ jobs:
         libpng, libwebp, Poco and ncurses libraries, or build from source.
         EOF
         tar -czf CraftOS-Tweaked-Linux-x86_64.tar.gz "$stage"
+    - name: Package the ROMs on their own
+      run: |
+        # For adding or updating ROMs in an existing install: unpack next to the executable
+        zip -qr CraftOS-Tweaked-ROMs.zip roms
     - name: Generate hashes
       run: sha256sum CraftOS-Tweaked-*.zip CraftOS-Tweaked-*.tar.gz | tee sha256-hashes.txt
     - name: Create release if needed
@@ -166,5 +159,6 @@ jobs:
           CraftOS-Tweaked-Portable-Win64.zip \
           CraftOS-Tweaked-Portable-WinARM64.zip \
           CraftOS-Tweaked-Linux-x86_64.tar.gz \
+          CraftOS-Tweaked-ROMs.zip \
           sha256-hashes.txt \
           --clobber --repo "${{ github.repository }}"
