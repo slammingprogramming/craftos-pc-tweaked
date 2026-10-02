@@ -205,6 +205,15 @@ static std::string urlEncode(const std::string& tmppath) {
 }
 
 
+// An HTTPS session that uses a socket that is already connected (HTTPSClientSession's own constructor for that fails with
+// "Cannot set the port number for an already connected session" in some Poco versions)
+class PinnedHTTPSSession: public HTTPSClientSession {
+public:
+    PinnedHTTPSSession(const std::string& host, Poco::UInt16 port, Context::Ptr context, const SecureStreamSocket& socket): HTTPSClientSession(host, port, context) {
+        attachSocket(socket);
+    }
+};
+
 // Opens a connection to the address that the rules were checked against, so that a host name that resolves differently a
 // second time (DNS rebinding) cannot reach a place the rules forbid. Throws a Poco exception if it cannot connect.
 static HTTPClientSession * makeHTTPSession(const Poco::URI& uri, const Poco::Net::SocketAddress& target, const HTTPOptions& options, double timeoutSeconds) {
@@ -227,7 +236,7 @@ static HTTPClientSession * makeHTTPSession(const Poco::URI& uri, const Poco::Net
         SecureStreamSocket socket(context);
         socket.setPeerHostName(uri.getHost()); // for the certificate check and SNI
         socket.connect(target, timeout);
-        return new HTTPSClientSession(socket);
+        return new PinnedHTTPSSession(uri.getHost(), uri.getPort(), context, socket);
     }
     StreamSocket socket;
     socket.connect(target, timeout);
